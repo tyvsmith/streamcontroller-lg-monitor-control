@@ -1,6 +1,6 @@
 """Tests for the ddcutil helper module."""
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import subprocess
 
 from ddcutil import (
@@ -20,17 +20,23 @@ from ddcutil import (
     set_volume,
     get_mute,
     set_mute,
-    VCP_LG_INPUT,
-    VCP_LG_PBP,
-    VCP_INPUT,
+    shutdown,
     VCP_BRIGHTNESS,
     VCP_VOLUME,
     VCP_MUTE,
     LG_INPUT_DP,
     LG_INPUT_USBC,
-    PBP_NONE,
-    PBP_LR_50_50,
 )
+from monitor_profile import MonitorProfile, InputConfig, PbpConfig
+
+_LG_PROFILE = MonitorProfile(
+    name="LG Test",
+    mfg_id="GSM",
+    inputs=InputConfig(vcp=0xF4, i2c_source_addr="x50"),
+    pbp=PbpConfig(vcp=0xD7, i2c_source_addr="x51", off=0x01, split_50_50=0x05),
+)
+
+_DEFAULT_PROFILE = MonitorProfile()
 
 
 DETECT_OUTPUT = """\
@@ -175,7 +181,7 @@ class TestGetvcp:
     @patch("ddcutil._run")
     def test_getvcp_lg_sidechannel(self, mock_run):
         mock_run.return_value = _mock_run(GETVCP_MFG_OUTPUT)
-        result = getvcp(1, VCP_LG_INPUT, src_addr="x50")
+        result = getvcp(1, 0xF4, src_addr="x50")
         assert result is not None
         assert result["current"] == 0xD0
         assert result["max"] == 1  # ml=0x01 from mh/ml/sh/sl format
@@ -198,7 +204,7 @@ class TestGetvcp:
     @patch("ddcutil._run")
     def test_getvcp_src_addr_in_args(self, mock_run):
         mock_run.return_value = _mock_run(GETVCP_MFG_OUTPUT)
-        getvcp(1, VCP_LG_INPUT, src_addr="x50")
+        getvcp(1, 0xF4, src_addr="x50")
         args = mock_run.call_args[0][0]
         assert "--i2c-source-addr=x50" in args
 
@@ -212,7 +218,7 @@ class TestSetvcp:
     @patch("ddcutil._run")
     def test_setvcp_args(self, mock_run):
         mock_run.return_value = _mock_run()
-        setvcp(1, VCP_LG_INPUT, 0xD0, src_addr="x50")
+        setvcp(1, 0xF4, 0xD0, src_addr="x50")
         args = mock_run.call_args[0][0]
         assert "-d" in args
         assert "1" in args
@@ -267,101 +273,157 @@ class TestIsLg:
 
 
 class TestSwitchInput:
+    @patch("ddcutil.profile_for")
     @patch("ddcutil.setvcp")
-    @patch("ddcutil.is_lg")
-    def test_switch_input_lg(self, mock_is_lg, mock_setvcp):
-        mock_is_lg.return_value = True
+    def test_switch_input_lg(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = _LG_PROFILE
         mock_setvcp.return_value = True
         assert switch_input(1, LG_INPUT_DP) is True
-        mock_setvcp.assert_called_once_with(
-            1, VCP_LG_INPUT, LG_INPUT_DP, "", src_addr="x50"
-        )
+        mock_setvcp.assert_called_once_with(1, 0xF4, LG_INPUT_DP, "", src_addr="x50")
 
+    @patch("ddcutil.profile_for")
     @patch("ddcutil.setvcp")
-    @patch("ddcutil.is_lg")
-    def test_switch_input_non_lg(self, mock_is_lg, mock_setvcp):
-        mock_is_lg.return_value = False
+    def test_switch_input_non_lg(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = _DEFAULT_PROFILE
         mock_setvcp.return_value = True
         assert switch_input(2, LG_INPUT_DP) is True
-        mock_setvcp.assert_called_once_with(2, VCP_INPUT, LG_INPUT_DP, "", src_addr="")
+        mock_setvcp.assert_called_once_with(2, 0x60, LG_INPUT_DP, "", src_addr="")
 
 
 class TestPbp:
+    @patch("ddcutil.profile_for")
     @patch("ddcutil.setvcp")
-    def test_set_pbp(self, mock_setvcp):
+    def test_set_pbp(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = _LG_PROFILE
         mock_setvcp.return_value = True
         assert set_pbp(1, LG_INPUT_DP, LG_INPUT_USBC) is True
         assert mock_setvcp.call_count == 3
         calls = mock_setvcp.call_args_list
         # Step 1: left input
         assert calls[0] == (
-            (1, VCP_LG_INPUT, LG_INPUT_DP, ""),
+            (1, 0xF4, LG_INPUT_DP, ""),
             {"src_addr": "x50"},
         )
         # Step 2: enable PBP
         assert calls[1] == (
-            (1, VCP_LG_PBP, PBP_LR_50_50, ""),
+            (1, 0xD7, 0x05, ""),
             {"src_addr": "x51"},
         )
         # Step 3: right input
         assert calls[2] == (
-            (1, VCP_LG_INPUT, LG_INPUT_USBC, ""),
+            (1, 0xF4, LG_INPUT_USBC, ""),
             {"src_addr": "x50"},
         )
 
+    @patch("ddcutil.profile_for")
     @patch("ddcutil.setvcp")
-    def test_set_pbp_fails_on_first_step(self, mock_setvcp):
+    def test_set_pbp_fails_on_first_step(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = _LG_PROFILE
         mock_setvcp.return_value = False
         assert set_pbp(1, LG_INPUT_DP, LG_INPUT_USBC) is False
         assert mock_setvcp.call_count == 1
 
+    @patch("ddcutil.profile_for")
     @patch("ddcutil.setvcp")
-    def test_disable_pbp(self, mock_setvcp):
+    def test_disable_pbp(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = _LG_PROFILE
         mock_setvcp.return_value = True
         assert disable_pbp(1) is True
-        mock_setvcp.assert_called_once_with(1, VCP_LG_PBP, PBP_NONE, "", src_addr="x51")
+        mock_setvcp.assert_called_once_with(1, 0xD7, 0x01, "", src_addr="x51")
+
+    @patch("ddcutil.profile_for")
+    @patch("ddcutil.setvcp")
+    def test_set_pbp_no_support(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = _DEFAULT_PROFILE
+        assert set_pbp(1, LG_INPUT_DP, LG_INPUT_USBC) is False
+        mock_setvcp.assert_not_called()
 
 
 class TestBrightnessVolume:
+    @patch("ddcutil.profile_for")
     @patch("ddcutil.getvcp")
-    def test_get_brightness(self, mock_getvcp):
+    def test_get_brightness(self, mock_getvcp, mock_profile):
+        mock_profile.return_value = _DEFAULT_PROFILE
         mock_getvcp.return_value = {"current": 75, "max": 100}
         result = get_brightness(1)
         assert result == {"current": 75, "max": 100}
         mock_getvcp.assert_called_once_with(1, VCP_BRIGHTNESS, "")
 
+    @patch("ddcutil.profile_for")
     @patch("ddcutil.setvcp")
-    def test_set_brightness(self, mock_setvcp):
+    def test_set_brightness(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = _DEFAULT_PROFILE
         mock_setvcp.return_value = True
         assert set_brightness(1, 50) is True
         mock_setvcp.assert_called_once_with(1, VCP_BRIGHTNESS, 50, "")
 
+    @patch("ddcutil.profile_for")
     @patch("ddcutil.getvcp")
-    def test_get_volume(self, mock_getvcp):
+    def test_get_volume(self, mock_getvcp, mock_profile):
+        mock_profile.return_value = _DEFAULT_PROFILE
         mock_getvcp.return_value = {"current": 30, "max": 100}
         result = get_volume(1)
         assert result == {"current": 30, "max": 100}
 
+    @patch("ddcutil.profile_for")
     @patch("ddcutil.setvcp")
-    def test_set_volume(self, mock_setvcp):
+    def test_set_volume(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = _DEFAULT_PROFILE
         mock_setvcp.return_value = True
         assert set_volume(1, 60) is True
         mock_setvcp.assert_called_once_with(1, VCP_VOLUME, 60, "")
 
+    @patch("ddcutil.profile_for")
     @patch("ddcutil.getvcp")
-    def test_get_mute(self, mock_getvcp):
+    def test_get_mute(self, mock_getvcp, mock_profile):
+        mock_profile.return_value = _DEFAULT_PROFILE
         mock_getvcp.return_value = {"current": 1, "max": 0}
         result = get_mute(1)
         assert result == {"current": 1, "max": 0}
 
+    @patch("ddcutil.profile_for")
     @patch("ddcutil.setvcp")
-    def test_set_mute_on(self, mock_setvcp):
+    def test_set_mute_on(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = _DEFAULT_PROFILE
         mock_setvcp.return_value = True
         assert set_mute(1, True) is True
         mock_setvcp.assert_called_once_with(1, VCP_MUTE, 1, "")
 
+    @patch("ddcutil.profile_for")
     @patch("ddcutil.setvcp")
-    def test_set_mute_off(self, mock_setvcp):
+    def test_set_mute_off(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = _DEFAULT_PROFILE
         mock_setvcp.return_value = True
         assert set_mute(1, False) is True
         mock_setvcp.assert_called_once_with(1, VCP_MUTE, 2, "")
+
+
+class TestShutdown:
+    def setup_method(self):
+        """Reset shutdown state between tests."""
+        import ddcutil
+
+        ddcutil._shutting_down = False
+        ddcutil._current_process = None
+
+    def test_shutdown_sets_flag(self):
+        import ddcutil
+
+        shutdown()
+        assert ddcutil._shutting_down is True
+
+    @patch("ddcutil._run")
+    def test_run_returns_failure_after_shutdown(self, mock_run):
+        shutdown()
+        assert getvcp(1, VCP_BRIGHTNESS) is None
+        assert setvcp(1, VCP_BRIGHTNESS, 50) is False
+
+    def test_shutdown_kills_current_process(self):
+        """Verify shutdown kills a tracked subprocess."""
+        import ddcutil
+
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = None  # still running
+        ddcutil._current_process = mock_proc
+        shutdown()
+        mock_proc.kill.assert_called_once()

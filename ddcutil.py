@@ -24,6 +24,8 @@ _HOST_PREFIX: list[str] = ["flatpak-spawn", "--host"] if _IN_FLATPAK else []
 
 # Serialize all I2C bus access — prevents concurrent ddcutil calls from colliding
 _lock: threading.Lock = threading.Lock()
+_shutting_down: bool = False
+_current_process: subprocess.Popen[str] | None = None
 
 # --- VCP constants (kept for action code and tests) ---
 
@@ -38,7 +40,7 @@ VCP_SHARPNESS: int = 0x87
 VCP_BLACK_STABILIZER: int = 0xF9
 VCP_POWER: int = 0xD6
 
-# --- Legacy constants (kept for backward compatibility with action code) ---
+# --- LG-specific input source codes ---
 
 LG_INPUT_DP: int = 0xD0
 LG_INPUT_USBC: int = 0xD1
@@ -83,16 +85,37 @@ class VcpValue(TypedDict):
 
 def _run(args: list[str], timeout: float = 3.0) -> subprocess.CompletedProcess[str]:
     """Run a host command with the I2C lock held."""
+    global _current_process
+    if _shutting_down:
+        return subprocess.CompletedProcess(
+            args=args, returncode=1, stdout="", stderr=""
+        )
     with _lock:
-        return subprocess.run(
+        if _shutting_down:
+            return subprocess.CompletedProcess(
+                args=args, returncode=1, stdout="", stderr=""
+            )
+        proc = subprocess.Popen(
             _HOST_PREFIX + args,
             shell=False,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=timeout,
             start_new_session=True,
             cwd=_HOME_DIR,
         )
+        _current_process = proc
+        try:
+            stdout, stderr = proc.communicate(timeout=timeout)
+            return subprocess.CompletedProcess(
+                args=proc.args, returncode=proc.returncode, stdout=stdout, stderr=stderr
+            )
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.communicate()
+            raise
+        finally:
+            _current_process = None
 
 
 def _bin(bin_path: str = "") -> str:
@@ -393,3 +416,16 @@ def set_power(display: int, mode: int, bin_path: str = "") -> bool:
     """Set power mode."""
     p = profile_for(display, bin_path)
     return setvcp(display, p.power.vcp, mode, bin_path)
+
+
+def shutdown() -> None:
+    """Signal all ddcutil operations to stop. Kills in-flight subprocess."""
+    global _shutting_down
+    _shutting_down = True
+    proc = _current_process
+    if proc is not None:
+        try:
+            if proc.poll() is None:
+                proc.kill()
+        except OSError:
+            pass
