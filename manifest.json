@@ -1,0 +1,19 @@
+{
+    "version": "0.1.0",
+    "thumbnail": "store/Thumbnail.png",
+    "id": "me_tysmith_LgMonitorControls",
+    "name": "LG Monitor Controls",
+    "author": "Ty Smith",
+    "github": "https://github.com/tyvsmith/streamcontroller-lg-input-controls",
+    "descriptions": {
+        "en_US": "Control LG monitor inputs, PBP mode, brightness, and volume from your Stream Deck via ddcutil."
+    },
+    "short-descriptions": {
+        "en_US": "LG monitor DDC/CI controls"
+    },
+    "tags": ["Utility", "Monitor", "DDC", "LG"],
+    "minimum-app-version": "1.0.0",
+    "app-version": "1.4.11-beta",
+    "description": "Control LG monitor inputs, PBP mode, brightness, and volume from your Stream Deck via ddcutil.",
+    "short-description": "LG monitor DDC/CI controls"
+}

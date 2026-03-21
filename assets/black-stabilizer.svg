@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72">
+  <!-- Eye shape for visibility/stabilizer -->
+  <path d="M8,36 Q36,12 64,36 Q36,60 8,36 Z" fill="none" stroke="white" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Pupil -->
+  <circle cx="36" cy="36" r="9" fill="none" stroke="white" stroke-width="3"/>
+  <!-- Center dot -->
+  <circle cx="36" cy="36" r="3" fill="white"/>
+</svg>

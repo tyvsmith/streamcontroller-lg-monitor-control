@@ -1,0 +1,71 @@
+{
+    "plugin.name": "LG Monitor Controls",
+    "settings.description": "Configure default display and ddcutil binary path",
+    "settings.display-number.title": "Default Display Number",
+    "settings.ddcutil-path.title": "ddcutil Binary Path",
+    "settings.poll-interval.title": "Poll Interval (seconds)",
+    "settings.poll-interval.subtitle": "How often to read monitor state when auto-update is enabled",
+
+    "actions.input-switch.name": "Input Switch",
+    "actions.pbp-mode.name": "PBP Mode",
+    "actions.brightness.name": "Brightness",
+    "actions.volume.name": "Volume",
+    "actions.contrast.name": "Contrast",
+    "actions.sharpness.name": "Sharpness",
+    "actions.black-stabilizer.name": "Black Stabilizer",
+    "actions.power-mode.name": "Power Mode",
+
+    "input-switch.target-input.title": "Target Input",
+    "input-switch.display-number.title": "Display Number",
+    "input-switch.display-number.subtitle": "0 = use plugin default",
+    "input-switch.disable-pbp.title": "Disable PBP on Switch",
+    "input-switch.disable-pbp.subtitle": "Turn off PBP mode when switching inputs",
+
+    "pbp-mode.left-input.title": "Left Input",
+    "pbp-mode.right-input.title": "Right Input",
+    "pbp-mode.return-input.title": "Return To Input",
+    "pbp-mode.return-input.subtitle": "Input to switch to when disabling PBP",
+    "pbp-mode.display-number.title": "Display Number",
+    "pbp-mode.display-number.subtitle": "0 = use plugin default",
+
+    "brightness.display-number.title": "Display Number",
+    "brightness.display-number.subtitle": "0 = use plugin default",
+    "brightness.step-size.title": "Step Size",
+    "brightness.step-size.subtitle": "Brightness increment per press (1-50)",
+
+    "volume.display-number.title": "Display Number",
+    "volume.display-number.subtitle": "0 = use plugin default",
+    "volume.step-size.title": "Step Size",
+    "volume.step-size.subtitle": "Volume increment per press (1-50)",
+
+    "contrast.display-number.title": "Display Number",
+    "contrast.display-number.subtitle": "0 = use plugin default",
+    "contrast.step-size.title": "Step Size",
+    "contrast.step-size.subtitle": "Contrast increment per press (1-50)",
+
+    "sharpness.display-number.title": "Display Number",
+    "sharpness.display-number.subtitle": "0 = use plugin default",
+    "sharpness.step-size.title": "Step Size",
+    "sharpness.step-size.subtitle": "Sharpness increment per press (1-50)",
+
+    "black-stabilizer.display-number.title": "Display Number",
+    "black-stabilizer.display-number.subtitle": "0 = use plugin default",
+    "black-stabilizer.step-size.title": "Step Size",
+    "black-stabilizer.step-size.subtitle": "Black stabilizer increment per press (1-50)",
+
+    "power.display-number.title": "Display Number",
+    "power.display-number.subtitle": "0 = use plugin default",
+    "power.on": "ON",
+    "power.standby": "STANDBY",
+
+    "settings.auto-poll.title": "Auto-update Status",
+    "settings.auto-poll.subtitle": "Periodically read value from monitor (may cause frame drops in games)",
+
+    "input.dp": "DisplayPort",
+    "input.usbc": "USB-C",
+    "input.hdmi1": "HDMI 1",
+    "input.hdmi2": "HDMI 2",
+
+    "status.unknown": "—",
+    "status.muted": "MUTE"
+}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72">
+  <!-- Circle split half bright / half dark -->
+  <circle cx="36" cy="36" r="22" fill="none" stroke="white" stroke-width="3.5"/>
+  <!-- Right half filled -->
+  <path d="M36,14 A22,22 0 0,1 36,58 Z" fill="white"/>
+</svg>

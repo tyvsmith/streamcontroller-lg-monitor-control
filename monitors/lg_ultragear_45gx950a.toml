@@ -1,0 +1,55 @@
+# LG ULTRAGEAR+ 45GX950A — 45" ultrawide OLED gaming monitor
+# Tested by @tyvsmith on firmware version as of 2026-03
+#
+# Uses LG DDC2AB sidechannel for input switching and PBP control.
+# Standard MCCS VCP codes work for brightness, contrast, volume, mute.
+# Sharpness and black stabilizer use LG manufacturer-specific codes.
+# Power mode reads correctly but the monitor ignores write commands.
+# PiP modes are not controllable via DDC/CI on this model.
+
+[monitor]
+name = "LG ULTRAGEAR+ 45GX950A"
+mfg_id = "GSM"
+product_codes = [40605]
+
+[inputs]
+vcp = 0xF4
+i2c_source_addr = "x50"
+
+[inputs.sources]
+dp = 0xD0
+usbc = 0xD1
+hdmi1 = 0x90
+hdmi2 = 0x91
+
+[pbp]
+vcp = 0xD7
+i2c_source_addr = "x51"
+off = 0x01
+split_50_50 = 0x05
+
+[brightness]
+vcp = 0x10
+
+[contrast]
+vcp = 0x12
+
+[volume]
+vcp = 0x62
+
+[mute]
+vcp = 0x8D
+muted = 1
+unmuted = 2
+
+[sharpness]
+vcp = 0x87
+
+[black_stabilizer]
+vcp = 0xF9
+
+[power]
+vcp = 0xD6
+on = 0x01
+standby = 0x04
+off = 0x05

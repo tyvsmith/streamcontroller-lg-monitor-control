@@ -1,0 +1,35 @@
+# Default monitor profile — standard MCCS VCP codes
+# Works with any DDC/CI-compliant monitor for basic controls.
+# Input switching uses standard VCP 0x60 with MCCS source values.
+# PBP, sharpness, and black stabilizer are not available on generic monitors.
+
+[monitor]
+name = "Generic DDC/CI Monitor"
+
+[inputs]
+vcp = 0x60
+
+[inputs.sources]
+dp = 0x0F
+hdmi1 = 0x11
+hdmi2 = 0x12
+
+[brightness]
+vcp = 0x10
+
+[contrast]
+vcp = 0x12
+
+[volume]
+vcp = 0x62
+
+[mute]
+vcp = 0x8D
+muted = 1
+unmuted = 2
+
+[power]
+vcp = 0xD6
+on = 0x01
+standby = 0x04
+off = 0x05
