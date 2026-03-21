@@ -118,11 +118,11 @@ class PbpMode(MonitorActionMixin, ActionBase):
             return_input = self._return_input()
             ddcutil.switch_input(display, return_input, bp)
             ddcutil.disable_pbp(display, bp)
-            self.plugin_base.last_input = return_input
+            self.plugin_base.set_last_input(return_input)
             self._set_state("off")
         else:
             ddcutil.set_pbp(display, self._left_input(), self._right_input(), bp)
-            self.plugin_base.last_input = None
+            self.plugin_base.set_last_input(None)
             self._set_state("on")
         self.plugin_base.refresh_all()
 

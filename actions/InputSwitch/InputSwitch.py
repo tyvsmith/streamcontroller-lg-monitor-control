@@ -63,16 +63,6 @@ class InputSwitch(MonitorActionMixin, ActionBase):
     def on_ready(self):
         self.plugin_base.register_action(self)
         self._prev_state = None
-        # Try to detect current input on first ready (best-effort)
-        if self.plugin_base.last_input is None:
-            self._run_threaded(self._detect_initial_input)
-        else:
-            self._update_display()
-
-    def _detect_initial_input(self):
-        result = ddcutil.get_input(self._display(), self._bin())
-        if result:
-            self.plugin_base.last_input = result["current"]
         self._update_display()
 
     def on_tick(self):
@@ -112,7 +102,7 @@ class InputSwitch(MonitorActionMixin, ActionBase):
         target = self._target_input()
 
         ddcutil.switch_input(display, target, bp)
-        self.plugin_base.last_input = target
+        self.plugin_base.set_last_input(target)
 
         if self._disable_pbp_on_switch() and ddcutil.is_lg(display, bp):
             pbp = ddcutil.get_pbp(display, bp)

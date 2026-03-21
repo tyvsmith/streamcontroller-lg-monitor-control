@@ -258,12 +258,6 @@ def switch_input(display: int, input_code: int, bin_path: str = "") -> bool:
     )
 
 
-def get_input(display: int, bin_path: str = "") -> VcpValue | None:
-    """Read current input source. May be unreliable on some monitors."""
-    p = profile_for(display, bin_path)
-    return getvcp(display, p.inputs.vcp, bin_path, src_addr=p.inputs.i2c_source_addr)
-
-
 def get_pbp(display: int, bin_path: str = "") -> VcpValue | None:
     """Read PBP mode status."""
     p = profile_for(display, bin_path)

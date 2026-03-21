@@ -58,7 +58,7 @@ class LgMonitorControls(PluginBase):
         self.lm.set_to_os_default()
         self.lm.set_fallback_language("en_US")
 
-        self.last_input: int | None = None
+        self.last_input: int | None = self.get_settings().get("last_input")
         self._active_actions: list = []
         self._refresh_lock = threading.Lock()
 
@@ -140,6 +140,12 @@ class LgMonitorControls(PluginBase):
             plugin_version=_MANIFEST["version"],
             app_version=_MANIFEST["app-version"],
         )
+
+    def set_last_input(self, input_code: int | None) -> None:
+        self.last_input = input_code
+        settings = self.get_settings()
+        settings["last_input"] = input_code
+        self.set_settings(settings)
 
     # --- Action registry for cross-action refresh ---
 
