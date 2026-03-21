@@ -18,14 +18,7 @@ from ... import ddcutil
 from ...action_base import MonitorActionMixin
 from ...icons import BG_ACTIVE, BG_INACTIVE, COLOR_ACTIVE, COLOR_INACTIVE, tint_icon
 
-_INPUT_CHOICES = [
-    (ddcutil.LG_INPUT_DP, "input.dp"),
-    (ddcutil.LG_INPUT_USBC, "input.usbc"),
-    (ddcutil.LG_INPUT_HDMI1, "input.hdmi1"),
-    (ddcutil.LG_INPUT_HDMI2, "input.hdmi2"),
-]
-
-_INPUT_CODES = [code for code, _ in _INPUT_CHOICES]
+_FALLBACK_CHOICES = [(0x0F, "input.dp"), (0x11, "input.hdmi1"), (0x12, "input.hdmi2")]
 
 
 class PbpMode(MonitorActionMixin, ActionBase):
@@ -34,6 +27,7 @@ class PbpMode(MonitorActionMixin, ActionBase):
         self._init_polling()
         self.has_configuration = True
         self._prev_state: str | None = None  # "on" | "off" | None
+        self._skip_next_poll: bool = False
         self._icon_cache: dict[tuple[int, int, int, int], str] = {}
         self._cached_icon_path: str = os.path.join(
             self.plugin_base.PATH, "assets", "pbp-mode.png"
@@ -48,14 +42,38 @@ class PbpMode(MonitorActionMixin, ActionBase):
     def _bin(self) -> str:
         return self.plugin_base.get_settings().get("ddcutil_path", "")
 
+    def _input_choices(self) -> list[tuple[int, str]]:
+        """Build input choices from the monitor profile."""
+        p = ddcutil.profile_for(self._display(), self._bin())
+        if p.inputs.sources:
+            return [(code, f"input.{name}") for name, code in p.inputs.sources.items()]
+        return _FALLBACK_CHOICES
+
+    def _input_name(self, code: int) -> str:
+        """Get display name for an input code from profile sources."""
+        p = ddcutil.profile_for(self._display(), self._bin())
+        for name, source_code in p.inputs.sources.items():
+            if source_code == code:
+                return self.plugin_base.lm.get(f"input.{name}")
+        return ddcutil.INPUT_NAMES.get(code, "?")
+
+    def _default_input(self, index: int = 0) -> int:
+        choices = self._input_choices()
+        if index < len(choices):
+            return choices[index][0]
+        return choices[0][0] if choices else 0x0F
+
     def _left_input(self) -> int:
-        return int(self.get_settings().get("left_input", ddcutil.LG_INPUT_DP))
+        saved = self.get_settings().get("left_input")
+        return int(saved) if saved is not None else self._default_input(0)
 
     def _right_input(self) -> int:
-        return int(self.get_settings().get("right_input", ddcutil.LG_INPUT_USBC))
+        saved = self.get_settings().get("right_input")
+        return int(saved) if saved is not None else self._default_input(1)
 
     def _return_input(self) -> int:
-        return int(self.get_settings().get("return_input", ddcutil.LG_INPUT_DP))
+        saved = self.get_settings().get("return_input")
+        return int(saved) if saved is not None else self._default_input(0)
 
     def _get_tinted_icon(self, color: tuple[int, int, int, int]) -> str:
         if color not in self._icon_cache:
@@ -68,17 +86,25 @@ class PbpMode(MonitorActionMixin, ActionBase):
         self._prev_state = None
         self._run_threaded(self._poll_display)
 
+    def on_remove(self):
+        self.plugin_base.unregister_action(self)
+
     def on_tick(self):
         if self._auto_poll_enabled() and self._should_poll():
             self._run_threaded(self._poll_display)
 
     def _poll_display(self):
         """Read PBP state from monitor and update UI."""
+        if self._skip_next_poll:
+            self._skip_next_poll = False
+            self._poll_done(success=True)
+            return
         try:
             display = self._display()
             bp = self._bin()
+            p = ddcutil.profile_for(display, bp)
             pbp = ddcutil.get_pbp(display, bp)
-            if pbp and pbp["current"] != ddcutil.PBP_NONE:
+            if pbp and pbp["current"] != p.pbp.off:
                 self._set_state("on")
             else:
                 self._set_state("off")
@@ -93,8 +119,8 @@ class PbpMode(MonitorActionMixin, ActionBase):
             return
         self._prev_state = state
 
-        left_name = ddcutil.INPUT_NAMES.get(self._left_input(), "?")
-        right_name = ddcutil.INPUT_NAMES.get(self._right_input(), "?")
+        left_name = self._input_name(self._left_input())
+        right_name = self._input_name(self._right_input())
         label = f"{left_name} | {right_name}"
 
         if state == "on":
@@ -113,8 +139,9 @@ class PbpMode(MonitorActionMixin, ActionBase):
         display = self._display()
         bp = self._bin()
 
+        p = ddcutil.profile_for(display, bp)
         pbp = ddcutil.get_pbp(display, bp)
-        if pbp and pbp["current"] != ddcutil.PBP_NONE:
+        if pbp and pbp["current"] != p.pbp.off:
             return_input = self._return_input()
             ddcutil.switch_input(display, return_input, bp)
             ddcutil.disable_pbp(display, bp)
@@ -124,6 +151,7 @@ class PbpMode(MonitorActionMixin, ActionBase):
             ddcutil.set_pbp(display, self._left_input(), self._right_input(), bp)
             self.plugin_base.set_last_input(None)
             self._set_state("on")
+        self._skip_next_poll = True
         self.plugin_base.refresh_all()
 
     # --- Configuration UI ---
@@ -132,34 +160,37 @@ class PbpMode(MonitorActionMixin, ActionBase):
         lm = self.plugin_base.lm
         settings = self.get_settings()
 
+        self._config_choices = self._input_choices()
+        self._config_codes = [code for code, _ in self._config_choices]
+
         self.left_model = Gtk.StringList()
-        for _, locale_key in _INPUT_CHOICES:
+        for _, locale_key in self._config_choices:
             self.left_model.append(lm.get(locale_key))
 
         self.left_row = Adw.ComboRow(
             title=lm.get("pbp-mode.left-input.title"),
             model=self.left_model,
         )
-        current_left = int(settings.get("left_input", ddcutil.LG_INPUT_DP))
-        if current_left in _INPUT_CODES:
-            self.left_row.set_selected(_INPUT_CODES.index(current_left))
+        current_left = self._left_input()
+        if current_left in self._config_codes:
+            self.left_row.set_selected(self._config_codes.index(current_left))
         self.left_row.connect("notify::selected", self._on_left_changed)
 
         self.right_model = Gtk.StringList()
-        for _, locale_key in _INPUT_CHOICES:
+        for _, locale_key in self._config_choices:
             self.right_model.append(lm.get(locale_key))
 
         self.right_row = Adw.ComboRow(
             title=lm.get("pbp-mode.right-input.title"),
             model=self.right_model,
         )
-        current_right = int(settings.get("right_input", ddcutil.LG_INPUT_USBC))
-        if current_right in _INPUT_CODES:
-            self.right_row.set_selected(_INPUT_CODES.index(current_right))
+        current_right = self._right_input()
+        if current_right in self._config_codes:
+            self.right_row.set_selected(self._config_codes.index(current_right))
         self.right_row.connect("notify::selected", self._on_right_changed)
 
         self.return_model = Gtk.StringList()
-        for _, locale_key in _INPUT_CHOICES:
+        for _, locale_key in self._config_choices:
             self.return_model.append(lm.get(locale_key))
 
         self.return_row = Adw.ComboRow(
@@ -167,9 +198,9 @@ class PbpMode(MonitorActionMixin, ActionBase):
             subtitle=lm.get("pbp-mode.return-input.subtitle"),
             model=self.return_model,
         )
-        current_return = int(settings.get("return_input", ddcutil.LG_INPUT_DP))
-        if current_return in _INPUT_CODES:
-            self.return_row.set_selected(_INPUT_CODES.index(current_return))
+        current_return = self._return_input()
+        if current_return in self._config_codes:
+            self.return_row.set_selected(self._config_codes.index(current_return))
         self.return_row.connect("notify::selected", self._on_return_changed)
 
         self.display_row = Adw.SpinRow.new_with_range(0, 10, 1)
@@ -202,27 +233,27 @@ class PbpMode(MonitorActionMixin, ActionBase):
 
     def _on_left_changed(self, combo, _):
         idx = combo.get_selected()
-        if 0 <= idx < len(_INPUT_CODES):
+        if 0 <= idx < len(self._config_codes):
             settings = self.get_settings()
-            settings["left_input"] = _INPUT_CODES[idx]
+            settings["left_input"] = self._config_codes[idx]
             self.set_settings(settings)
             self._prev_state = None
             self._run_threaded(self._poll_display)
 
     def _on_right_changed(self, combo, _):
         idx = combo.get_selected()
-        if 0 <= idx < len(_INPUT_CODES):
+        if 0 <= idx < len(self._config_codes):
             settings = self.get_settings()
-            settings["right_input"] = _INPUT_CODES[idx]
+            settings["right_input"] = self._config_codes[idx]
             self.set_settings(settings)
             self._prev_state = None
             self._run_threaded(self._poll_display)
 
     def _on_return_changed(self, combo, _):
         idx = combo.get_selected()
-        if 0 <= idx < len(_INPUT_CODES):
+        if 0 <= idx < len(self._config_codes):
             settings = self.get_settings()
-            settings["return_input"] = _INPUT_CODES[idx]
+            settings["return_input"] = self._config_codes[idx]
             self.set_settings(settings)
 
     def _on_display_changed(self, spin):

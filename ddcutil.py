@@ -425,7 +425,6 @@ def shutdown() -> None:
     proc = _current_process
     if proc is not None:
         try:
-            if proc.poll() is None:
-                proc.kill()
+            proc.kill()
         except OSError:
             pass

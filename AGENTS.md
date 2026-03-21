@@ -11,11 +11,20 @@ StreamController plugin (`me_tysmith_LgMonitorControls`) that controls LG monito
 ```
 main.py                 # PluginBase — registers actions, plugin-level settings UI
 ddcutil.py              # Shared ddcutil helper — subprocess wrapper, VCP constants, I2C lock, LG detection
+monitor_profile.py      # TOML profile loader — configures VCP codes per monitor model
+action_base.py          # MonitorActionMixin — thread-safe polling with exponential backoff
+icons.py                # Icon tinting utilities for active/inactive state display
 actions/
+  slider_base.py        # SliderAction base for numeric cycling actions (5 actions inherit this)
   InputSwitch/          # Switch monitor input (DP, USB-C, HDMI1, HDMI2)
   PbpMode/              # PBP 50/50 split with left/right input selection
-  Brightness/           # Brightness cycling (key-press step)
-  Volume/               # Volume cycling + mute toggle
+  Brightness/           # Brightness cycling (key-press step + dial)
+  Volume/               # Volume cycling + mute toggle (key-press step + dial)
+  Contrast/             # Contrast cycling (key-press step + dial)
+  Sharpness/            # Sharpness cycling — LG-specific (key-press step + dial)
+  BlackStabilizer/      # Black stabilizer cycling — LG-specific (key-press step + dial)
+  PowerMode/            # Toggle on/standby
+monitors/               # TOML monitor profiles (VCP codes per model)
 locales/en_US.json      # All user-facing strings (locale keys)
 manifest.json           # StreamController plugin metadata (id, version, author, app-version)
 assets/                 # 72x72 action icons

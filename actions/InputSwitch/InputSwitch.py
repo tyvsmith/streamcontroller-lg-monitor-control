@@ -15,14 +15,7 @@ from ... import ddcutil
 from ...action_base import MonitorActionMixin
 from ...icons import BG_ACTIVE, BG_INACTIVE, COLOR_ACTIVE, COLOR_INACTIVE, tint_icon
 
-_INPUT_CHOICES = [
-    (ddcutil.LG_INPUT_DP, "input.dp"),
-    (ddcutil.LG_INPUT_USBC, "input.usbc"),
-    (ddcutil.LG_INPUT_HDMI1, "input.hdmi1"),
-    (ddcutil.LG_INPUT_HDMI2, "input.hdmi2"),
-]
-
-_INPUT_CODES = [code for code, _ in _INPUT_CHOICES]
+_FALLBACK_CHOICES = [(0x0F, "input.dp"), (0x11, "input.hdmi1"), (0x12, "input.hdmi2")]
 
 
 class InputSwitch(MonitorActionMixin, ActionBase):
@@ -45,8 +38,27 @@ class InputSwitch(MonitorActionMixin, ActionBase):
     def _bin(self) -> str:
         return self.plugin_base.get_settings().get("ddcutil_path", "")
 
+    def _input_choices(self) -> list[tuple[int, str]]:
+        """Build input choices from the monitor profile."""
+        p = ddcutil.profile_for(self._display(), self._bin())
+        if p.inputs.sources:
+            return [(code, f"input.{name}") for name, code in p.inputs.sources.items()]
+        return _FALLBACK_CHOICES
+
+    def _input_name(self, code: int) -> str:
+        """Get display name for an input code from profile sources."""
+        p = ddcutil.profile_for(self._display(), self._bin())
+        for name, source_code in p.inputs.sources.items():
+            if source_code == code:
+                return self.plugin_base.lm.get(f"input.{name}")
+        return ddcutil.INPUT_NAMES.get(code, "?")
+
     def _target_input(self) -> int:
-        return int(self.get_settings().get("target_input", ddcutil.LG_INPUT_DP))
+        saved = self.get_settings().get("target_input")
+        if saved is not None:
+            return int(saved)
+        choices = self._input_choices()
+        return choices[0][0] if choices else 0x0F
 
     def _disable_pbp_on_switch(self) -> bool:
         return self.get_settings().get("disable_pbp_on_switch", True)
@@ -74,9 +86,12 @@ class InputSwitch(MonitorActionMixin, ActionBase):
         # InputSwitch doesn't read from the monitor — just refreshes from last_input
         self._update_display()
 
+    def on_remove(self):
+        self.plugin_base.unregister_action(self)
+
     def _update_display(self):
         target = self._target_input()
-        label = ddcutil.INPUT_NAMES.get(target, "?")
+        label = self._input_name(target)
         active = self._is_active()
         state = f"{label}:{'on' if active else 'off'}"
 
@@ -104,9 +119,10 @@ class InputSwitch(MonitorActionMixin, ActionBase):
         ddcutil.switch_input(display, target, bp)
         self.plugin_base.set_last_input(target)
 
-        if self._disable_pbp_on_switch() and ddcutil.is_lg(display, bp):
+        p = ddcutil.profile_for(display, bp)
+        if self._disable_pbp_on_switch() and p.has_pbp:
             pbp = ddcutil.get_pbp(display, bp)
-            if pbp and pbp["current"] != ddcutil.PBP_NONE:
+            if pbp and pbp["current"] != p.pbp.off:
                 ddcutil.disable_pbp(display, bp)
 
         self._prev_state = None
@@ -119,17 +135,20 @@ class InputSwitch(MonitorActionMixin, ActionBase):
         lm = self.plugin_base.lm
         settings = self.get_settings()
 
+        self._config_choices = self._input_choices()
+        self._config_codes = [code for code, _ in self._config_choices]
+
         self.input_model = Gtk.StringList()
-        for _, locale_key in _INPUT_CHOICES:
+        for _, locale_key in self._config_choices:
             self.input_model.append(lm.get(locale_key))
 
         self.input_row = Adw.ComboRow(
             title=lm.get("input-switch.target-input.title"),
             model=self.input_model,
         )
-        current_input = int(settings.get("target_input", ddcutil.LG_INPUT_DP))
-        if current_input in _INPUT_CODES:
-            self.input_row.set_selected(_INPUT_CODES.index(current_input))
+        current_input = self._target_input()
+        if current_input in self._config_codes:
+            self.input_row.set_selected(self._config_codes.index(current_input))
         self.input_row.connect("notify::selected", self._on_input_changed)
 
         self.display_row = Adw.SpinRow.new_with_range(0, 10, 1)
@@ -163,9 +182,9 @@ class InputSwitch(MonitorActionMixin, ActionBase):
 
     def _on_input_changed(self, combo, _):
         idx = combo.get_selected()
-        if 0 <= idx < len(_INPUT_CODES):
+        if 0 <= idx < len(self._config_codes):
             settings = self.get_settings()
-            settings["target_input"] = _INPUT_CODES[idx]
+            settings["target_input"] = self._config_codes[idx]
             self.set_settings(settings)
             self._prev_state = None
             self._update_display()

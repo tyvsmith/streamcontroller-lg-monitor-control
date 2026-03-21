@@ -412,8 +412,7 @@ class TestShutdown:
         shutdown()
         assert ddcutil._shutting_down is True
 
-    @patch("ddcutil._run")
-    def test_run_returns_failure_after_shutdown(self, mock_run):
+    def test_run_returns_failure_after_shutdown(self):
         shutdown()
         assert getvcp(1, VCP_BRIGHTNESS) is None
         assert setvcp(1, VCP_BRIGHTNESS, 50) is False

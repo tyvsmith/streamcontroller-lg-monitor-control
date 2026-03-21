@@ -47,6 +47,9 @@ class PowerMode(MonitorActionMixin, ActionBase):
         self._prev_state = None
         self._run_threaded(self._poll_display)
 
+    def on_remove(self):
+        self.plugin_base.unregister_action(self)
+
     def on_tick(self):
         if self._auto_poll_enabled() and self._should_poll():
             self._run_threaded(self._poll_display)

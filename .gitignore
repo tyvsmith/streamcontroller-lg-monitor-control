@@ -12,3 +12,4 @@ venv/
 .pytest_cache/
 .direnv/
 .icon_cache/
+.claude/
