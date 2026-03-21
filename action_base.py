@@ -57,4 +57,4 @@ class MonitorActionMixin:
             self._consecutive_failures += 1
 
     def _run_threaded(self, target: Callable[..., Any], *args: Any) -> None:
-        threading.Thread(target=target, args=args, daemon=True).start()
+        self.plugin_base.enqueue(target, *args)  # type: ignore[attr-defined]

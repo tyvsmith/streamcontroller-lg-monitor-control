@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import queue
 import threading
 
 import gi
@@ -61,6 +62,10 @@ class LgMonitorControls(PluginBase):
         self.last_input: int | None = self.get_settings().get("last_input")
         self._active_actions: list = []
         self._refresh_lock = threading.Lock()
+        self._work_queue: queue.Queue = queue.Queue()
+        self._stop = threading.Event()
+        self._worker = threading.Thread(target=self._worker_loop, daemon=True)
+        self._worker.start()
 
         self.input_switch_holder = ActionHolder(
             plugin_base=self,
@@ -147,6 +152,27 @@ class LgMonitorControls(PluginBase):
         settings["last_input"] = input_code
         self.set_settings(settings)
 
+    # --- Worker queue ---
+
+    def _worker_loop(self) -> None:
+        """Single worker thread that drains the work queue."""
+        while not self._stop.is_set():
+            try:
+                fn, args = self._work_queue.get(timeout=0.5)
+            except queue.Empty:
+                continue
+            if self._stop.is_set():
+                break
+            try:
+                fn(*args)
+            except Exception:
+                log.debug("Worker task failed: %s", fn.__name__, exc_info=True)
+
+    def enqueue(self, fn, *args) -> None:
+        """Submit work to the shared worker thread."""
+        if not self._stop.is_set():
+            self._work_queue.put((fn, args))
+
     # --- Action registry for cross-action refresh ---
 
     def register_action(self, action) -> None:
@@ -162,8 +188,8 @@ class LgMonitorControls(PluginBase):
                 pass
 
     def refresh_all(self) -> None:
-        """Refresh all active actions in a single background thread."""
-        threading.Thread(target=self._do_refresh_all, daemon=True).start()
+        """Enqueue a refresh of all active actions."""
+        self.enqueue(self._do_refresh_all)
 
     def _do_refresh_all(self) -> None:
         with self._refresh_lock:
