@@ -19,6 +19,14 @@ from src.backend.PluginManager.ActionHolder import ActionHolder
 from src.backend.PluginManager.ActionInputSupport import ActionInputSupport
 from src.backend.PluginManager.PluginBase import PluginBase
 
+try:
+    from src.Signals.Signals import AppQuit
+    import globals as gl
+
+    _HAS_SIGNALS = True
+except ImportError:
+    _HAS_SIGNALS = False
+
 from .actions.BlackStabilizer.BlackStabilizer import BlackStabilizer
 from .actions.Brightness.Brightness import Brightness
 from .actions.Contrast.Contrast import Contrast
@@ -146,6 +154,12 @@ class LgMonitorControls(PluginBase):
             app_version=_MANIFEST["app-version"],
         )
 
+        if _HAS_SIGNALS:
+            try:
+                gl.signal_manager.connect_signal(AppQuit, self._on_app_quit)
+            except Exception:
+                log.debug("Could not register AppQuit handler", exc_info=True)
+
     def set_last_input(self, input_code: int | None) -> None:
         self.last_input = input_code
         settings = self.get_settings()
@@ -172,6 +186,20 @@ class LgMonitorControls(PluginBase):
         """Submit work to the shared worker thread."""
         if not self._stop.is_set():
             self._work_queue.put((fn, args))
+
+    def _on_app_quit(self, *args) -> None:
+        """Clean shutdown: stop worker, kill in-flight subprocess."""
+        from . import ddcutil
+
+        self._stop.set()
+        ddcutil.shutdown()
+        # Drain remaining items
+        while not self._work_queue.empty():
+            try:
+                self._work_queue.get_nowait()
+            except queue.Empty:
+                break
+        self._worker.join(timeout=2.0)
 
     # --- Action registry for cross-action refresh ---
 
