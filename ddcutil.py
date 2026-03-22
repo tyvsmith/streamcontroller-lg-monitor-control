@@ -418,6 +418,19 @@ def set_power(display: int, mode: int, bin_path: str = "") -> bool:
     return setvcp(display, p.power.vcp, mode, bin_path)
 
 
+def is_available(bin_path: str = "") -> bool:
+    """Check if ddcutil binary is reachable on the host.
+
+    Runs ``ddcutil --version`` through the Flatpak sandbox (if applicable).
+    Returns True if the binary is found and executes successfully.
+    """
+    try:
+        result = _run([_bin(bin_path), "--version"], timeout=5.0)
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, OSError, FileNotFoundError):
+        return False
+
+
 def reset() -> None:
     """Reset shutdown state. Call on plugin reload."""
     global _shutting_down, _current_process

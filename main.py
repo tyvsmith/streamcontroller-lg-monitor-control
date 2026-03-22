@@ -64,6 +64,9 @@ class LgMonitorControls(PluginBase):
     def __init__(self):
         super().__init__()
         _ddcutil_mod.reset()
+        self._ddcutil_available: bool = _ddcutil_mod.is_available()
+        if not self._ddcutil_available:
+            log.warning("ddcutil binary not found — monitor controls will not work")
 
         self.lm = self.locale_manager
         self.lm.set_to_os_default()
@@ -237,6 +240,15 @@ class LgMonitorControls(PluginBase):
             title=self.lm.get("plugin.name"),
             description=self.lm.get("settings.description"),
         )
+
+        if not self._ddcutil_available:
+            warning_row = Adw.ActionRow(
+                title=self.lm.get("warning.ddcutil-missing.title"),
+                subtitle=self.lm.get("warning.ddcutil-missing.description"),
+                icon_name="dialog-warning-symbolic",
+            )
+            warning_row.add_css_class("error")
+            group.add(warning_row)
 
         self._display_row = Adw.SpinRow.new_with_range(1, 10, 1)
         self._display_row.set_title(self.lm.get("settings.display-number.title"))
