@@ -15,13 +15,13 @@ jobs:
       - uses: astral-sh/setup-uv@v6
 
       - name: Lint
-        run: uv run ruff check .
+        run: uv run --only-group ci ruff check .
 
       - name: Format check
-        run: uv run ruff format --check .
+        run: uv run --only-group ci ruff format --check .
 
       - name: Type check
-        run: uv run pyright
+        run: uv run --only-group ci pyright
 
       - name: Test
-        run: uv run pytest tests/ -v
+        run: uv run --only-group ci pytest tests/ -v

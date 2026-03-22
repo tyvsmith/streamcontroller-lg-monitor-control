@@ -4,6 +4,11 @@ version = "0.1.0"
 requires-python = ">=3.11"
 
 [dependency-groups]
+ci = [
+    "pyright>=1.1",
+    "pytest>=8",
+    "ruff>=0.8",
+]
 dev = [
     "pygobject-stubs>=2.12",
     "pyright>=1.1",
