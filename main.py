@@ -70,6 +70,9 @@ class LgMonitorControls(PluginBase):
         self.lm.set_fallback_language("en_US")
 
         self.last_input: int | None = self.get_settings().get("last_input")
+        self._ddcutil_available: bool = self._check_ddcutil()
+        if not self._ddcutil_available:
+            log.warning("ddcutil binary not found — monitor controls will not work")
         self._active_actions: list = []
         self._refresh_lock = threading.Lock()
         self._work_queue: queue.Queue = queue.Queue()
@@ -230,6 +233,12 @@ class LgMonitorControls(PluginBase):
             except Exception:
                 log.debug("Refresh failed for %s", type(action).__name__, exc_info=True)
 
+    # --- ddcutil availability ---
+
+    def _check_ddcutil(self) -> bool:
+        bin_path = self.get_settings().get("ddcutil_path", "")
+        return _ddcutil_mod.is_available(bin_path)
+
     # --- Plugin-level settings UI ---
 
     def get_settings_area(self):
@@ -237,6 +246,16 @@ class LgMonitorControls(PluginBase):
             title=self.lm.get("plugin.name"),
             description=self.lm.get("settings.description"),
         )
+
+        self._ddcutil_available = self._check_ddcutil()
+        self._warning_row = Adw.ActionRow(
+            title=self.lm.get("warning.ddcutil-missing.title"),
+            subtitle=self.lm.get("warning.ddcutil-missing.description"),
+            icon_name="dialog-warning-symbolic",
+        )
+        self._warning_row.add_css_class("error")
+        self._warning_row.set_visible(not self._ddcutil_available)
+        group.add(self._warning_row)
 
         self._display_row = Adw.SpinRow.new_with_range(1, 10, 1)
         self._display_row.set_title(self.lm.get("settings.display-number.title"))
@@ -278,6 +297,9 @@ class LgMonitorControls(PluginBase):
         settings = self.get_settings()
         settings["ddcutil_path"] = entry.get_text()
         self.set_settings(settings)
+        self._ddcutil_available = _ddcutil_mod.is_available(entry.get_text())
+        if hasattr(self, "_warning_row"):
+            self._warning_row.set_visible(not self._ddcutil_available)
 
     def _on_poll_interval_changed(self, spin):
         settings = self.get_settings()

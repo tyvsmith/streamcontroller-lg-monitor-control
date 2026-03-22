@@ -67,5 +67,8 @@
     "input.hdmi2": "HDMI 2",
 
     "status.unknown": "—",
-    "status.muted": "MUTE"
+    "status.muted": "MUTE",
+
+    "warning.ddcutil-missing.title": "ddcutil not found",
+    "warning.ddcutil-missing.description": "ddcutil is required but was not found on your system. Install it (e.g. sudo apt install ddcutil) and ensure the i2c-dev kernel module is loaded. See the plugin README for setup instructions."
 }

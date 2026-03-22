@@ -6,14 +6,14 @@
     "author": "Ty Smith",
     "github": "https://github.com/tyvsmith/streamcontroller-lg-monitor-control",
     "descriptions": {
-        "en_US": "Control LG monitor inputs, PBP mode, brightness, and volume from your Stream Deck via ddcutil."
+        "en_US": "Control monitor inputs, PBP, brightness, volume, and more via ddcutil DDC/CI. Tested on LG 45GX950A — other DDC/CI monitors may work but compatibility varies. Contributions and monitor profiles welcome!"
     },
     "short-descriptions": {
-        "en_US": "LG monitor DDC/CI controls"
+        "en_US": "Monitor DDC/CI controls via ddcutil"
     },
-    "tags": ["Utility", "Monitor", "DDC", "LG"],
+    "tags": ["Utility", "Monitor", "DDC", "LG", "ddcutil"],
     "minimum-app-version": "1.0.0",
     "app-version": "1.4.11-beta",
-    "description": "Control LG monitor inputs, PBP mode, brightness, and volume from your Stream Deck via ddcutil.",
-    "short-description": "LG monitor DDC/CI controls"
+    "description": "Control monitor inputs, PBP, brightness, volume, and more via ddcutil DDC/CI. Tested on LG 45GX950A — other DDC/CI monitors may work but compatibility varies. Contributions and monitor profiles welcome!",
+    "short-description": "Monitor DDC/CI controls via ddcutil"
 }
