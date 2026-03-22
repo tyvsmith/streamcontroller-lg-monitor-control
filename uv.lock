@@ -157,6 +157,11 @@ version = "0.1.0"
 source = { virtual = "." }
 
 [package.dev-dependencies]
+ci = [
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
 dev = [
     { name = "pygobject-stubs" },
     { name = "pyright" },
@@ -167,6 +172,11 @@ dev = [
 [package.metadata]
 
 [package.metadata.requires-dev]
+ci = [
+    { name = "pyright", specifier = ">=1.1" },
+    { name = "pytest", specifier = ">=8" },
+    { name = "ruff", specifier = ">=0.8" },
+]
 dev = [
     { name = "pygobject-stubs", specifier = ">=2.12" },
     { name = "pyright", specifier = ">=1.1" },
