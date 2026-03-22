@@ -9,6 +9,7 @@ from ddcutil import (
     _GETVCP_SL_RE,
     detect_displays,
     getvcp,
+    is_available,
     setvcp,
     is_lg,
     switch_input,
@@ -396,6 +397,35 @@ class TestBrightnessVolume:
         mock_setvcp.return_value = True
         assert set_mute(1, False) is True
         mock_setvcp.assert_called_once_with(1, VCP_MUTE, 2, "")
+
+
+class TestIsAvailable:
+    @patch("ddcutil._run")
+    def test_available_when_version_succeeds(self, mock_run):
+        mock_run.return_value = _mock_run("ddcutil version 2.1.0")
+        assert is_available() is True
+
+    @patch("ddcutil._run")
+    def test_available_with_custom_path(self, mock_run):
+        mock_run.return_value = _mock_run("ddcutil version 2.1.0")
+        assert is_available("/usr/local/bin/ddcutil") is True
+        args = mock_run.call_args[0][0]
+        assert args[0] == "/usr/local/bin/ddcutil"
+
+    @patch("ddcutil._run")
+    def test_unavailable_on_nonzero_exit(self, mock_run):
+        mock_run.return_value = _mock_run(returncode=1)
+        assert is_available() is False
+
+    @patch("ddcutil._run")
+    def test_unavailable_on_timeout(self, mock_run):
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd="ddcutil", timeout=5)
+        assert is_available() is False
+
+    @patch("ddcutil._run")
+    def test_unavailable_on_oserror(self, mock_run):
+        mock_run.side_effect = OSError("No such file or directory")
+        assert is_available() is False
 
 
 class TestShutdown:

@@ -427,7 +427,7 @@ def is_available(bin_path: str = "") -> bool:
     try:
         result = _run([_bin(bin_path), "--version"], timeout=5.0)
         return result.returncode == 0
-    except (subprocess.TimeoutExpired, OSError, FileNotFoundError):
+    except (subprocess.TimeoutExpired, OSError):
         return False
 
 
