@@ -58,7 +58,7 @@ See the [ddcutil documentation](https://www.ddcutil.com/config/) for troubleshoo
 
 1. Open StreamController and go to the **Store**
 2. Click the **+** button to add a custom repository
-3. Enter the URL: `https://github.com/tyvsmith/streamcontroller-lg-input-controls`
+3. Enter the URL: `https://github.com/tyvsmith/streamcontroller-lg-monitor-control`
 4. Install the plugin from the store
 5. Restart StreamController
 
@@ -66,12 +66,12 @@ See the [ddcutil documentation](https://www.ddcutil.com/config/) for troubleshoo
 
 1. Clone this repo:
    ```bash
-   git clone https://github.com/tyvsmith/streamcontroller-lg-input-controls.git
+   git clone https://github.com/tyvsmith/streamcontroller-lg-monitor-control.git
    ```
 
 2. Symlink into the StreamController plugins directory:
    ```bash
-   ln -s /path/to/streamcontroller-lg-input-controls \
+   ln -s /path/to/streamcontroller-lg-monitor-control \
      ~/.var/app/com.core447.StreamController/data/plugins/me_tysmith_LgMonitorControls
    ```
 

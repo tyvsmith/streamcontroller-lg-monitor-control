@@ -1,5 +1,5 @@
 [project]
-name = "streamcontroller-lg-input-controls"
+name = "streamcontroller-lg-monitor-control"
 version = "0.1.0"
 requires-python = ">=3.11"
 
