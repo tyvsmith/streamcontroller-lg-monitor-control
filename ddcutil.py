@@ -418,6 +418,13 @@ def set_power(display: int, mode: int, bin_path: str = "") -> bool:
     return setvcp(display, p.power.vcp, mode, bin_path)
 
 
+def reset() -> None:
+    """Reset shutdown state. Call on plugin reload."""
+    global _shutting_down, _current_process
+    _shutting_down = False
+    _current_process = None
+
+
 def shutdown() -> None:
     """Signal all ddcutil operations to stop. Kills in-flight subprocess."""
     global _shutting_down

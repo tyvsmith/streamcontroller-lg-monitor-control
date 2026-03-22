@@ -40,7 +40,9 @@ class MonitorActionMixin:
     def _should_poll(self) -> bool:
         now = time.monotonic()
         with self._poll_lock:
-            if now - self._last_check < self._effective_interval():
+            interval = self._effective_interval()
+            elapsed = now - self._last_check
+            if elapsed < interval:
                 return False
             if self._poll_in_flight:
                 return False

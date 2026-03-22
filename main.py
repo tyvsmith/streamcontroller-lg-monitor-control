@@ -35,6 +35,7 @@ from .actions.PbpMode.PbpMode import PbpMode
 from .actions.PowerMode.PowerMode import PowerMode
 from .actions.Sharpness.Sharpness import Sharpness
 from .actions.Volume.Volume import Volume
+from . import ddcutil as _ddcutil_mod
 
 
 def _load_manifest() -> dict:
@@ -62,6 +63,7 @@ _KEY_AND_DIAL = {
 class LgMonitorControls(PluginBase):
     def __init__(self):
         super().__init__()
+        _ddcutil_mod.reset()
 
         self.lm = self.locale_manager
         self.lm.set_to_os_default()

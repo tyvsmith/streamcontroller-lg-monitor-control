@@ -99,5 +99,5 @@ All user-facing text must go through locale keys in `locales/en_US.json`, access
 
 - Display number `0` in per-action settings means "use plugin default"
 - Short press cycles values; long press (`HOLD_START`) does a special action (full brightness, mute toggle)
-- `on_tick()` polls every 5 seconds to update key display with current monitor state
+- `on_tick()` auto-update is off by default; when enabled, polls at the plugin-wide interval (default 30s)
 - LG input getvcp via sidechannel may be unreliable — InputSwitch treats it as fire-and-forget

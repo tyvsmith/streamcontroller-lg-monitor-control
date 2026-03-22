@@ -177,7 +177,7 @@ See the [ddcutil wiki](https://github.com/rockowitz/ddcutil/wiki/Switching-input
 - **Input state read**: The LG sidechannel `getvcp 0xF4` returns unreliable values, so InputSwitch uses fire-and-forget with visual tracking
 - **Response time**: Returns 0xFF on the 45GX950A — not supported via DDC/CI on OLED panels
 - **Hot-plugging**: Monitor detection is cached at startup — plugging or unplugging a monitor requires restarting StreamController
-- **Polling interval**: 5 seconds between status polls (ddcutil calls are ~0.5-1s each)
+- **Polling**: Auto-update is off by default. When enabled per-action, polls at the plugin-wide interval (default 30s). Polling causes I2C bus access which may cause frame drops in games.
 
 ## Development
 

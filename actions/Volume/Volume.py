@@ -5,6 +5,7 @@ import logging
 from src.backend.DeckManagement.InputIdentifier import Input
 
 from ... import ddcutil
+from ...icons import COLOR_INACTIVE, tint_icon
 from ..slider_base import SliderAction
 
 log = logging.getLogger(__name__)
@@ -25,8 +26,6 @@ class Volume(SliderAction):
     def _poll_display(self):
         try:
             if not self._tinted_icon:
-                from ..slider_base import tint_icon, COLOR_INACTIVE
-
                 tinted = tint_icon(self._cached_icon_path, COLOR_INACTIVE)
                 self._tinted_icon = tinted if tinted else self._cached_icon_path
                 self.set_media(media_path=self._tinted_icon, size=0.75)
