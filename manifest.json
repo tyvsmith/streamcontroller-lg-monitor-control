@@ -1,5 +1,5 @@
 {
-    "version": "0.1.0",
+    "version": "0.2.0",
     "thumbnail": "store/Thumbnail.png",
     "id": "me_tysmith_LgMonitorControls",
     "name": "LG Monitor Controls",
@@ -12,8 +12,8 @@
         "en_US": "Monitor DDC/CI controls via ddcutil"
     },
     "tags": ["Utility", "Monitor", "DDC", "LG", "ddcutil"],
-    "minimum-app-version": "1.0.0",
-    "app-version": "1.4.11-beta",
+    "minimum-app-version": "1.5.0-beta",
+    "app-version": "1.5.0-beta",
     "description": "Control monitor inputs, PBP, brightness, volume, and more via ddcutil DDC/CI. Tested on LG 45GX950A — other DDC/CI monitors may work but compatibility varies. Contributions and monitor profiles welcome!",
     "short-description": "Monitor DDC/CI controls via ddcutil"
 }
