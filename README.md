@@ -10,6 +10,7 @@ A [StreamController](https://github.com/StreamController/StreamController) plugi
 |--------|-----------|------------------------|-----------|
 | **Input Switch** | Switch to configured input | — | — |
 | **PBP Mode** | Toggle PBP 50/50 split | — | — |
+| **Dual Mode** | Toggle Dual Mode / normal mode | — | — |
 | **Brightness** | Cycle in steps | Set to 100% | Adjust up/down |
 | **Volume** | Cycle in steps | Toggle mute | Adjust up/down |
 | **Contrast** | Cycle in steps | Reset to 70% | Adjust up/down |
@@ -83,16 +84,16 @@ The plugin uses TOML profiles in `monitors/` to configure VCP codes per monitor 
 
 ### Included Profiles
 
-- **`lg_ultragear_45gx950a.toml`** — LG 45GX950A (tested, fully working except power mode)
+- **`lg_ultragear_45gx950a.toml`** — LG 45GX950A (tested for existing controls, includes Dual Mode values reported for this model; power writes are ignored)
 - **`default.toml`** — Generic DDC/CI monitor (standard MCCS codes, no PBP/sharpness/black stabilizer)
 
 ### How Profiles Work
 
 On startup, the plugin runs `ddcutil detect` to identify connected monitors by manufacturer ID and product code. It then matches against profiles in `monitors/`:
 
-1. Exact match on `mfg_id` + `product_codes` → use that profile
-2. Match on `mfg_id` only → use the first matching profile
-3. No match → fall back to `default.toml`
+1. Exact match on `mfg_id` + `product_codes` → use that model-specific profile
+2. Match on `mfg_id` only when a profile has no `product_codes` → use that manufacturer-wide profile
+3. No exact or manufacturer-wide match → fall back to `default.toml`
 
 ### Adding a Profile for Your Monitor
 
@@ -132,6 +133,12 @@ i2c_source_addr = "x51"
 off = 0x01
 split_50_50 = 0x05
 
+[dual_mode]
+vcp = 0xB1                         # set to 0 if not supported
+i2c_source_addr = ""               # optional
+normal = 8704                      # normal mode value
+dual = 8448                        # Dual Mode value
+
 [brightness]
 vcp = 0x10                         # standard MCCS
 
@@ -169,6 +176,10 @@ LG monitors use a non-standard DDC/CI mechanism called DDC2AB for input switchin
 Standard VCP codes (brightness, contrast, volume, etc.) work normally without the sidechannel.
 
 See the [ddcutil wiki](https://github.com/rockowitz/ddcutil/wiki/Switching-input-source-on-LG-monitors) for details.
+
+## LG Dual Mode
+
+The included 45GX950A profile exposes Dual Mode through VCP `0xB1`, using value `8448` for Dual Mode and `8704` for normal mode. These values are based on the public ColorControl release notes for the 45GX950A; if a firmware revision behaves differently, set `dual_mode.vcp = 0` in the profile until the correct values are confirmed.
 
 ## Known Limitations
 

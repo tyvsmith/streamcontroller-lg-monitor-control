@@ -28,6 +28,14 @@ class PbpConfig:
 
 
 @dataclass
+class DualModeConfig:
+    vcp: int = 0
+    i2c_source_addr: str = ""
+    normal: int = 0
+    dual: int = 0
+
+
+@dataclass
 class FeatureConfig:
     vcp: int = 0
 
@@ -55,6 +63,7 @@ class MonitorProfile:
 
     inputs: InputConfig = field(default_factory=InputConfig)
     pbp: PbpConfig = field(default_factory=PbpConfig)
+    dual_mode: DualModeConfig = field(default_factory=DualModeConfig)
     brightness: FeatureConfig = field(default_factory=lambda: FeatureConfig(vcp=0x10))
     contrast: FeatureConfig = field(default_factory=lambda: FeatureConfig(vcp=0x12))
     volume: FeatureConfig = field(default_factory=lambda: FeatureConfig(vcp=0x62))
@@ -66,6 +75,10 @@ class MonitorProfile:
     @property
     def has_pbp(self) -> bool:
         return self.pbp.vcp != 0
+
+    @property
+    def has_dual_mode(self) -> bool:
+        return self.dual_mode.vcp != 0
 
     @property
     def has_sharpness(self) -> bool:
@@ -83,6 +96,7 @@ def _load_toml(path: Path) -> MonitorProfile:
     mon = data.get("monitor", {})
     inp = data.get("inputs", {})
     pbp = data.get("pbp", {})
+    dual_mode = data.get("dual_mode", {})
     mute = data.get("mute", {})
     power = data.get("power", {})
 
@@ -100,6 +114,12 @@ def _load_toml(path: Path) -> MonitorProfile:
             i2c_source_addr=pbp.get("i2c_source_addr", ""),
             off=pbp.get("off", 0),
             split_50_50=pbp.get("split_50_50", 0),
+        ),
+        dual_mode=DualModeConfig(
+            vcp=dual_mode.get("vcp", 0),
+            i2c_source_addr=dual_mode.get("i2c_source_addr", ""),
+            normal=dual_mode.get("normal", 0),
+            dual=dual_mode.get("dual", 0),
         ),
         brightness=FeatureConfig(vcp=data.get("brightness", {}).get("vcp", 0x10)),
         contrast=FeatureConfig(vcp=data.get("contrast", {}).get("vcp", 0x12)),
@@ -156,7 +176,7 @@ def _ensure_loaded() -> None:
 
 
 def get_profile(mfg_id: str, product_code: int = 0) -> MonitorProfile:
-    """Match by mfg_id, then narrow by product_code. Falls back to default."""
+    """Match by exact product code or a manufacturer-wide profile."""
     _ensure_loaded()
     assert _profiles is not None
     assert _default is not None
@@ -169,7 +189,11 @@ def get_profile(mfg_id: str, product_code: int = 0) -> MonitorProfile:
         if p.product_codes and product_code in p.product_codes:
             return p
 
-    return candidates[0]
+    for p in candidates:
+        if not p.product_codes:
+            return p
+
+    return _default
 
 
 def get_default() -> MonitorProfile:

@@ -18,6 +18,7 @@ class TestLoadToml:
         assert p.name == "LG ULTRAGEAR+ 45GX950A"
         assert p.mfg_id == "GSM"
         assert 40605 in p.product_codes
+        assert 40606 in p.product_codes
         assert p.inputs.vcp == 0xF4
         assert p.inputs.i2c_source_addr == "x50"
         assert p.inputs.sources["dp"] == 0xD0
@@ -26,6 +27,10 @@ class TestLoadToml:
         assert p.pbp.off == 0x01
         assert p.pbp.split_50_50 == 0x05
         assert p.has_pbp is True
+        assert p.dual_mode.vcp == 0xB1
+        assert p.dual_mode.normal == 8704
+        assert p.dual_mode.dual == 8448
+        assert p.has_dual_mode is True
         assert p.brightness.vcp == 0x10
         assert p.sharpness.vcp == 0x87
         assert p.has_sharpness is True
@@ -37,6 +42,7 @@ class TestLoadToml:
         assert p.inputs.vcp == 0x60
         assert p.inputs.i2c_source_addr == ""
         assert p.has_pbp is False
+        assert p.has_dual_mode is False
         assert p.has_sharpness is False
         assert p.has_black_stabilizer is False
         assert p.brightness.vcp == 0x10
@@ -48,14 +54,24 @@ class TestProfileMatching:
         assert p.mfg_id == "GSM"
         assert p.inputs.vcp == 0xF4
 
-    def test_match_lg_by_mfg_only(self):
-        p = get_profile("GSM", 99999)
+    def test_match_lg_by_alternate_product_code(self):
+        p = get_profile("GSM", 40606)
         assert p.mfg_id == "GSM"
+        assert p.inputs.vcp == 0xF4
+        assert p.has_dual_mode is True
+
+    def test_unmatched_lg_product_returns_default(self):
+        p = get_profile("GSM", 99999)
+        assert p.mfg_id == ""
+        assert p.inputs.vcp == 0x60
+        assert p.has_pbp is False
+        assert p.has_dual_mode is False
 
     def test_unknown_mfg_returns_default(self):
         p = get_profile("XYZ", 12345)
         assert p.inputs.vcp == 0x60
         assert p.has_pbp is False
+        assert p.has_dual_mode is False
 
     def test_get_default(self):
         p = get_default()
@@ -71,5 +87,6 @@ class TestMonitorProfileDefaults:
         assert p.mute.vcp == 0x8D
         assert p.power.vcp == 0xD6
         assert p.has_pbp is False
+        assert p.has_dual_mode is False
         assert p.has_sharpness is False
         assert p.has_black_stabilizer is False

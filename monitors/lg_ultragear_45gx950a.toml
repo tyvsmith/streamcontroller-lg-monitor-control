@@ -4,13 +4,14 @@
 # Uses LG DDC2AB sidechannel for input switching and PBP control.
 # Standard MCCS VCP codes work for brightness, contrast, volume, mute.
 # Sharpness and black stabilizer use LG manufacturer-specific codes.
+# Dual Mode uses VCP 0xB1 values reported for this model by ColorControl.
 # Power mode reads correctly but the monitor ignores write commands.
 # PiP modes are not controllable via DDC/CI on this model.
 
 [monitor]
 name = "LG ULTRAGEAR+ 45GX950A"
 mfg_id = "GSM"
-product_codes = [40605]
+product_codes = [40605, 40606]
 
 [inputs]
 vcp = 0xF4
@@ -27,6 +28,11 @@ vcp = 0xD7
 i2c_source_addr = "x51"
 off = 0x01
 split_50_50 = 0x05
+
+[dual_mode]
+vcp = 0xB1
+normal = 8704
+dual = 8448
 
 [brightness]
 vcp = 0x10
