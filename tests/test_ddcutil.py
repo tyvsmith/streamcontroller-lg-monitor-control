@@ -15,6 +15,8 @@ from ddcutil import (
     switch_input,
     set_pbp,
     disable_pbp,
+    get_dual_mode,
+    set_dual_mode,
     get_brightness,
     set_brightness,
     get_volume,
@@ -23,18 +25,20 @@ from ddcutil import (
     set_mute,
     shutdown,
     VCP_BRIGHTNESS,
+    VCP_DUAL_MODE,
     VCP_VOLUME,
     VCP_MUTE,
     LG_INPUT_DP,
     LG_INPUT_USBC,
 )
-from monitor_profile import MonitorProfile, InputConfig, PbpConfig
+from monitor_profile import MonitorProfile, InputConfig, PbpConfig, DualModeConfig
 
 _LG_PROFILE = MonitorProfile(
     name="LG Test",
     mfg_id="GSM",
     inputs=InputConfig(vcp=0xF4, i2c_source_addr="x50"),
     pbp=PbpConfig(vcp=0xD7, i2c_source_addr="x51", off=0x01, split_50_50=0x05),
+    dual_mode=DualModeConfig(vcp=0xB1, normal=8704, dual=8448),
 )
 
 _DEFAULT_PROFILE = MonitorProfile()
@@ -337,6 +341,46 @@ class TestPbp:
     def test_set_pbp_no_support(self, mock_setvcp, mock_profile):
         mock_profile.return_value = _DEFAULT_PROFILE
         assert set_pbp(1, LG_INPUT_DP, LG_INPUT_USBC) is False
+        mock_setvcp.assert_not_called()
+
+
+class TestDualMode:
+    @patch("ddcutil.profile_for")
+    @patch("ddcutil.getvcp")
+    def test_get_dual_mode(self, mock_getvcp, mock_profile):
+        mock_profile.return_value = _LG_PROFILE
+        mock_getvcp.return_value = {"current": 8448, "max": 0}
+        assert get_dual_mode(1) == {"current": 8448, "max": 0}
+        mock_getvcp.assert_called_once_with(1, VCP_DUAL_MODE, "", src_addr="")
+
+    @patch("ddcutil.profile_for")
+    @patch("ddcutil.getvcp")
+    def test_get_dual_mode_no_support(self, mock_getvcp, mock_profile):
+        mock_profile.return_value = _DEFAULT_PROFILE
+        assert get_dual_mode(1) is None
+        mock_getvcp.assert_not_called()
+
+    @patch("ddcutil.profile_for")
+    @patch("ddcutil.setvcp")
+    def test_set_dual_mode_on(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = _LG_PROFILE
+        mock_setvcp.return_value = True
+        assert set_dual_mode(1, True) is True
+        mock_setvcp.assert_called_once_with(1, VCP_DUAL_MODE, 8448, "", src_addr="")
+
+    @patch("ddcutil.profile_for")
+    @patch("ddcutil.setvcp")
+    def test_set_dual_mode_normal(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = _LG_PROFILE
+        mock_setvcp.return_value = True
+        assert set_dual_mode(1, False) is True
+        mock_setvcp.assert_called_once_with(1, VCP_DUAL_MODE, 8704, "", src_addr="")
+
+    @patch("ddcutil.profile_for")
+    @patch("ddcutil.setvcp")
+    def test_set_dual_mode_no_support(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = _DEFAULT_PROFILE
+        assert set_dual_mode(1, True) is False
         mock_setvcp.assert_not_called()
 
 

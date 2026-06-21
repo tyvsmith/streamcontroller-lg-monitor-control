@@ -32,6 +32,7 @@ _current_process: subprocess.Popen[str] | None = None
 VCP_LG_INPUT: int = 0xF4
 VCP_LG_PBP: int = 0xD7
 VCP_INPUT: int = 0x60
+VCP_DUAL_MODE: int = 0xB1
 VCP_BRIGHTNESS: int = 0x10
 VCP_CONTRAST: int = 0x12
 VCP_VOLUME: int = 0x62
@@ -49,6 +50,9 @@ LG_INPUT_HDMI2: int = 0x91
 
 PBP_NONE: int = 0x01
 PBP_LR_50_50: int = 0x05
+
+DUAL_MODE_ON: int = 0x2100
+DUAL_MODE_NORMAL: int = 0x2200
 
 POWER_ON: int = 0x01
 POWER_STANDBY: int = 0x04
@@ -321,6 +325,31 @@ def disable_pbp(display: int, bin_path: str = "") -> bool:
         return False
     return setvcp(
         display, p.pbp.vcp, p.pbp.off, bin_path, src_addr=p.pbp.i2c_source_addr
+    )
+
+
+def get_dual_mode(display: int, bin_path: str = "") -> VcpValue | None:
+    """Read Dual Mode status."""
+    p = profile_for(display, bin_path)
+    if not p.has_dual_mode:
+        return None
+    return getvcp(
+        display, p.dual_mode.vcp, bin_path, src_addr=p.dual_mode.i2c_source_addr
+    )
+
+
+def set_dual_mode(display: int, enabled: bool, bin_path: str = "") -> bool:
+    """Set Dual Mode on or return to normal mode."""
+    p = profile_for(display, bin_path)
+    if not p.has_dual_mode:
+        return False
+    value = p.dual_mode.dual if enabled else p.dual_mode.normal
+    return setvcp(
+        display,
+        p.dual_mode.vcp,
+        value,
+        bin_path,
+        src_addr=p.dual_mode.i2c_source_addr,
     )
 
 

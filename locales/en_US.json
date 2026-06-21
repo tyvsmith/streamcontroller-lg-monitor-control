@@ -8,6 +8,7 @@
 
     "actions.input-switch.name": "Input Switch",
     "actions.pbp-mode.name": "PBP Mode",
+    "actions.dual-mode.name": "Dual Mode",
     "actions.brightness.name": "Brightness",
     "actions.volume.name": "Volume",
     "actions.contrast.name": "Contrast",
@@ -27,6 +28,12 @@
     "pbp-mode.return-input.subtitle": "Input to switch to when disabling PBP",
     "pbp-mode.display-number.title": "Display Number",
     "pbp-mode.display-number.subtitle": "0 = use plugin default",
+
+    "dual-mode.display-number.title": "Display Number",
+    "dual-mode.display-number.subtitle": "0 = use plugin default",
+    "dual-mode.dual": "DUAL",
+    "dual-mode.normal": "NORMAL",
+    "dual-mode.unsupported": "N/A",
 
     "brightness.display-number.title": "Display Number",
     "brightness.display-number.subtitle": "0 = use plugin default",

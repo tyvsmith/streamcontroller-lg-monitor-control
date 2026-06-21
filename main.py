@@ -1,4 +1,4 @@
-"""StreamController plugin for LG monitor controls — input switching, PBP, brightness, and volume."""
+"""StreamController plugin for LG monitor controls via ddcutil."""
 
 import json
 import logging
@@ -30,6 +30,7 @@ except ImportError:
 from .actions.BlackStabilizer.BlackStabilizer import BlackStabilizer
 from .actions.Brightness.Brightness import Brightness
 from .actions.Contrast.Contrast import Contrast
+from .actions.DualMode.DualMode import DualMode
 from .actions.InputSwitch.InputSwitch import InputSwitch
 from .actions.PbpMode.PbpMode import PbpMode
 from .actions.PowerMode.PowerMode import PowerMode
@@ -97,6 +98,15 @@ class LgMonitorControls(PluginBase):
             action_support=_KEY_ONLY,
         )
         self.add_action_holder(self.pbp_mode_holder)
+
+        self.dual_mode_holder = ActionHolder(
+            plugin_base=self,
+            action_base=DualMode,
+            action_id_suffix="DualMode",
+            action_name=self.lm.get("actions.dual-mode.name"),
+            action_support=_KEY_ONLY,
+        )
+        self.add_action_holder(self.dual_mode_holder)
 
         self.brightness_holder = ActionHolder(
             plugin_base=self,
