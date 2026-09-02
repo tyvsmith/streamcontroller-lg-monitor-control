@@ -14,3 +14,4 @@ venv/
 .icon_cache/
 *.log
 .claude/
+.worktrees/
