@@ -392,6 +392,16 @@ class TestDualMode:
         assert set_dual_mode(1, True) is False
         mock_setvcp.assert_not_called()
 
+    @patch("ddcutil.profile_for")
+    @patch("ddcutil.setvcp")
+    def test_set_dual_mode_incomplete_profile(self, mock_setvcp, mock_profile):
+        mock_profile.return_value = MonitorProfile(
+            dual_mode=DualModeConfig(vcp=0xB1, on=None, off=0x2200)
+        )
+
+        assert set_dual_mode(1, True) is False
+        mock_setvcp.assert_not_called()
+
 
 class TestBrightnessVolume:
     @patch("ddcutil.profile_for")

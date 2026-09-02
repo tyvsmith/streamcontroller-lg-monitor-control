@@ -50,6 +50,32 @@ class TestLoadToml:
         assert p.has_dual_mode is False
         assert p.brightness.vcp == 0x10
 
+    def test_dual_mode_missing_on_is_unsupported(self, tmp_path):
+        path = tmp_path / "missing-on.toml"
+        path.write_text(
+            '[monitor]\nname = "Incomplete"\n\n'
+            "[dual_mode]\nvcp = 0xB1\noff = 0x2200\n",
+            encoding="utf-8",
+        )
+
+        p = _load_toml(path)
+
+        assert p.dual_mode.on is None
+        assert p.has_dual_mode is False
+
+    def test_dual_mode_missing_off_is_unsupported(self, tmp_path):
+        path = tmp_path / "missing-off.toml"
+        path.write_text(
+            '[monitor]\nname = "Incomplete"\n\n'
+            "[dual_mode]\nvcp = 0xB1\non = 0x2100\n",
+            encoding="utf-8",
+        )
+
+        p = _load_toml(path)
+
+        assert p.dual_mode.off is None
+        assert p.has_dual_mode is False
+
 
 class TestProfileMatching:
     def test_match_lg_by_mfg_and_product(self):

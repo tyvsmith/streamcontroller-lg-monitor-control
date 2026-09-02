@@ -345,10 +345,13 @@ def set_dual_mode(display: int, enabled: bool, bin_path: str = "") -> bool:
     p = profile_for(display, bin_path)
     if not p.has_dual_mode:
         return False
+    value = p.dual_mode.on if enabled else p.dual_mode.off
+    if value is None:
+        return False
     return setvcp(
         display,
         p.dual_mode.vcp,
-        p.dual_mode.on if enabled else p.dual_mode.off,
+        value,
         bin_path,
         src_addr=p.dual_mode.i2c_source_addr,
         permit_unknown=True,

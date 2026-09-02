@@ -43,8 +43,8 @@ class MuteConfig:
 class DualModeConfig:
     vcp: int = 0
     i2c_source_addr: str = ""
-    on: int = 0
-    off: int = 0
+    on: int | None = None
+    off: int | None = None
     on_label: str = ""
     off_label: str = ""
 
@@ -80,7 +80,11 @@ class MonitorProfile:
 
     @property
     def has_dual_mode(self) -> bool:
-        return self.dual_mode.vcp != 0
+        return (
+            self.dual_mode.vcp != 0
+            and self.dual_mode.on is not None
+            and self.dual_mode.off is not None
+        )
 
     @property
     def has_sharpness(self) -> bool:
@@ -138,8 +142,8 @@ def _load_toml(path: Path) -> MonitorProfile:
         dual_mode=DualModeConfig(
             vcp=dual.get("vcp", 0),
             i2c_source_addr=dual.get("i2c_source_addr", ""),
-            on=dual.get("on", 0),
-            off=dual.get("off", 0),
+            on=dual.get("on"),
+            off=dual.get("off"),
             on_label=dual.get("on_label", ""),
             off_label=dual.get("off_label", ""),
         ),
