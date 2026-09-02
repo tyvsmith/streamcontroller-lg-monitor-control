@@ -47,14 +47,12 @@ class TestLoadToml:
         assert p.has_sharpness is False
         assert p.has_black_stabilizer is False
         assert p.has_dual_mode is False
-        assert p.has_dual_mode is False
         assert p.brightness.vcp == 0x10
 
     def test_dual_mode_missing_on_is_unsupported(self, tmp_path):
         path = tmp_path / "missing-on.toml"
         path.write_text(
-            '[monitor]\nname = "Incomplete"\n\n'
-            "[dual_mode]\nvcp = 0xB1\noff = 0x2200\n",
+            '[monitor]\nname = "Incomplete"\n\n[dual_mode]\nvcp = 0xB1\noff = 0x2200\n',
             encoding="utf-8",
         )
 
@@ -66,8 +64,7 @@ class TestLoadToml:
     def test_dual_mode_missing_off_is_unsupported(self, tmp_path):
         path = tmp_path / "missing-off.toml"
         path.write_text(
-            '[monitor]\nname = "Incomplete"\n\n'
-            "[dual_mode]\nvcp = 0xB1\non = 0x2100\n",
+            '[monitor]\nname = "Incomplete"\n\n[dual_mode]\nvcp = 0xB1\non = 0x2100\n',
             encoding="utf-8",
         )
 

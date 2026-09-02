@@ -16,6 +16,7 @@ from src.backend.PluginManager.ActionBase import ActionBase
 
 from ... import ddcutil
 from ...action_base import MonitorActionMixin
+from ...dual_mode_state import is_dual_mode_active
 from ...icons import BG_ACTIVE, BG_INACTIVE, COLOR_ACTIVE, COLOR_INACTIVE, tint_icon
 
 
@@ -71,12 +72,13 @@ class DualMode(MonitorActionMixin, ActionBase):
 
     def _update_display(self):
         lm = self.plugin_base.lm
-        p = ddcutil.profile_for(self._display(), self._bin())
+        display = self._display()
+        p = ddcutil.profile_for(display, self._bin())
 
         if not p.has_dual_mode:
             active = False
             label = lm.get("status.unknown")
-        elif self.plugin_base.dual_mode_active:
+        elif is_dual_mode_active(self.plugin_base.dual_mode_active, display):
             active = True
             label = p.dual_mode.on_label or lm.get("dual-mode.on")
         else:
@@ -107,9 +109,9 @@ class DualMode(MonitorActionMixin, ActionBase):
             log.warning("Dual Mode not available for display %d (%s)", display, p.name)
             return
 
-        enabled = not self.plugin_base.dual_mode_active
+        enabled = not is_dual_mode_active(self.plugin_base.dual_mode_active, display)
         if ddcutil.set_dual_mode(display, enabled, bp):
-            self.plugin_base.set_dual_mode_active(enabled)
+            self.plugin_base.set_dual_mode_active(display, enabled)
         else:
             log.warning("Dual Mode write failed for display %d", display)
 

@@ -37,6 +37,10 @@ from .actions.PowerMode.PowerMode import PowerMode
 from .actions.Sharpness.Sharpness import Sharpness
 from .actions.Volume.Volume import Volume
 from . import ddcutil as _ddcutil_mod
+from .dual_mode_state import (
+    normalize_dual_mode_states,
+    update_dual_mode_settings,
+)
 
 
 def _load_manifest() -> dict:
@@ -71,8 +75,8 @@ class LgMonitorControls(PluginBase):
         self.lm.set_fallback_language("en_US")
 
         self.last_input: int | None = self.get_settings().get("last_input")
-        self.dual_mode_active: bool = bool(
-            self.get_settings().get("dual_mode_active", False)
+        self.dual_mode_active: dict[str, bool] = normalize_dual_mode_states(
+            self.get_settings().get("dual_mode_active")
         )
         self._ddcutil_available: bool = self._check_ddcutil()
         if not self._ddcutil_available:
@@ -184,10 +188,9 @@ class LgMonitorControls(PluginBase):
         settings["last_input"] = input_code
         self.set_settings(settings)
 
-    def set_dual_mode_active(self, active: bool) -> None:
-        self.dual_mode_active = active
-        settings = self.get_settings()
-        settings["dual_mode_active"] = active
+    def set_dual_mode_active(self, display: int, active: bool) -> None:
+        settings = update_dual_mode_settings(self.get_settings(), display, active)
+        self.dual_mode_active = normalize_dual_mode_states(settings["dual_mode_active"])
         self.set_settings(settings)
 
     # --- Worker queue ---

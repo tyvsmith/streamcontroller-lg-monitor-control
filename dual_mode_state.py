@@ -1,6 +1,7 @@
 """JSON-safe helpers for persisted per-display Dual Mode state."""
 
 from collections.abc import Mapping
+from typing import cast
 
 _SETTINGS_KEY = "dual_mode_active"
 
@@ -9,9 +10,10 @@ def normalize_dual_mode_states(raw: object) -> dict[str, bool]:
     """Return valid display-state pairs from persisted settings."""
     if not isinstance(raw, dict):
         return {}
+    persisted = cast(dict[object, object], raw)
     return {
         str(display): active
-        for display, active in raw.items()
+        for display, active in persisted.items()
         if isinstance(active, bool)
     }
 
