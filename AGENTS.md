@@ -18,6 +18,7 @@ actions/
   slider_base.py        # SliderAction base for numeric cycling actions (5 actions inherit this)
   InputSwitch/          # Switch monitor input (DP, USB-C, HDMI1, HDMI2)
   PbpMode/              # PBP 50/50 split with left/right input selection
+  DualMode/             # Toggle Dual Mode (native vs high-refresh) — LG-specific, state tracked locally
   Brightness/           # Brightness cycling (key-press step + dial)
   Volume/               # Volume cycling + mute toggle (key-press step + dial)
   Contrast/             # Contrast cycling (key-press step + dial)
@@ -89,6 +90,7 @@ All user-facing text must go through locale keys in `locales/en_US.json`, access
 - **LG detection**: `detect_displays()` parses `ddcutil detect` output; `mfg_id == "GSM"` indicates LG Electronics
 - **Standard VCP**: Brightness (0x10), Volume (0x62), Mute (0x8D) work on any DDC/CI monitor
 - **PBP sequence**: left input → enable PBP → right input (3 separate setvcp calls)
+- **Dual Mode**: VCP 0xB1 on the standard address, values 0x2100 (on) / 0x2200 (off) on the 45GX950A. Not in ddcutil's feature table, so `setvcp` passes `--permit-unknown-feature` (ddcutil ≥ 2.1.0). Reads return 0 in both modes — state is tracked in plugin settings
 
 ## Versioning
 
@@ -101,3 +103,4 @@ All user-facing text must go through locale keys in `locales/en_US.json`, access
 - Short press cycles values; long press (`HOLD_START`) does a special action (full brightness, mute toggle)
 - `on_tick()` auto-update is off by default; when enabled, polls at the plugin-wide interval (default 30s)
 - LG input getvcp via sidechannel may be unreliable — InputSwitch treats it as fire-and-forget
+- Dual Mode state is not readable — DualMode tracks `dual_mode_active` in plugin settings and refreshes all keys after a toggle

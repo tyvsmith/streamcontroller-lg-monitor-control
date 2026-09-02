@@ -53,3 +53,13 @@ vcp = 0xD6
 on = 0x01
 standby = 0x04
 off = 0x05
+
+# Dual Mode toggles between native 5K2K 165Hz and WFHD 2560x1080 330Hz.
+# VCP 0xB1 is not in ddcutil's feature table, so writes need --permit-unknown-feature
+# (ddcutil >= 2.1.0). Reading 0xB1 returns 0 in both modes, so state is not readable.
+[dual_mode]
+vcp = 0xB1
+on = 0x2100
+off = 0x2200
+on_label = "WFHD 330Hz"
+off_label = "5K2K 165Hz"

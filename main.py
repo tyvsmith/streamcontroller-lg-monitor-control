@@ -30,6 +30,7 @@ except ImportError:
 from .actions.BlackStabilizer.BlackStabilizer import BlackStabilizer
 from .actions.Brightness.Brightness import Brightness
 from .actions.Contrast.Contrast import Contrast
+from .actions.DualMode.DualMode import DualMode
 from .actions.InputSwitch.InputSwitch import InputSwitch
 from .actions.PbpMode.PbpMode import PbpMode
 from .actions.PowerMode.PowerMode import PowerMode
@@ -70,6 +71,9 @@ class LgMonitorControls(PluginBase):
         self.lm.set_fallback_language("en_US")
 
         self.last_input: int | None = self.get_settings().get("last_input")
+        self.dual_mode_active: bool = bool(
+            self.get_settings().get("dual_mode_active", False)
+        )
         self._ddcutil_available: bool = self._check_ddcutil()
         if not self._ddcutil_available:
             log.warning("ddcutil binary not found — monitor controls will not work")
@@ -97,6 +101,15 @@ class LgMonitorControls(PluginBase):
             action_support=_KEY_ONLY,
         )
         self.add_action_holder(self.pbp_mode_holder)
+
+        self.dual_mode_holder = ActionHolder(
+            plugin_base=self,
+            action_base=DualMode,
+            action_id_suffix="DualMode",
+            action_name=self.lm.get("actions.dual-mode.name"),
+            action_support=_KEY_ONLY,
+        )
+        self.add_action_holder(self.dual_mode_holder)
 
         self.brightness_holder = ActionHolder(
             plugin_base=self,
@@ -169,6 +182,12 @@ class LgMonitorControls(PluginBase):
         self.last_input = input_code
         settings = self.get_settings()
         settings["last_input"] = input_code
+        self.set_settings(settings)
+
+    def set_dual_mode_active(self, active: bool) -> None:
+        self.dual_mode_active = active
+        settings = self.get_settings()
+        settings["dual_mode_active"] = active
         self.set_settings(settings)
 
     # --- Worker queue ---
