@@ -57,6 +57,14 @@ def test_build_release_rejects_non_ascii_version_digits(tmp_path: Path) -> None:
         build_release(ROOT, "١.٢.٣", tmp_path / "release")
 
 
+@pytest.mark.parametrize("version", ("01.2.3", "1.02.3", "1.2.03"))
+def test_build_release_rejects_leading_zero_version_components(
+    tmp_path: Path, version: str
+) -> None:
+    with pytest.raises(ReleaseError, match="exact X.Y.Z"):
+        build_release(ROOT, version, tmp_path / "release")
+
+
 def test_extract_changelog_returns_only_the_requested_section(tmp_path: Path) -> None:
     changelog = tmp_path / "CHANGELOG.md"
     changelog.write_text(
@@ -446,4 +454,20 @@ def test_build_release_creates_an_installable_validated_archive(tmp_path: Path) 
     assert artifacts.checksum.read_text(encoding="utf-8") == f"{digest}  {zip_name}\n"
     assert artifacts.release_notes.read_text(encoding="utf-8") == (
         extract_changelog(ROOT / "CHANGELOG.md", "0.3.0") + "\n"
+    )
+
+
+def test_build_release_generates_reproducible_zip_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    clock = [1_700_000_000]
+    monkeypatch.setattr(build_release_module.zipfile.time, "time", lambda: clock[0])
+
+    first = build_release(ROOT, "0.3.0", tmp_path / "first")
+    clock[0] += 120
+    second = build_release(ROOT, "0.3.0", tmp_path / "second")
+
+    assert first.archive.read_bytes() == second.archive.read_bytes()
+    assert first.checksum.read_text(encoding="utf-8") == second.checksum.read_text(
+        encoding="utf-8"
     )

@@ -16,7 +16,11 @@ import zipfile
 PLUGIN_ID = "me_tysmith_LgMonitorControls"
 PROJECT_NAME = "streamcontroller-lg-monitor-control"
 
-_VERSION_PATTERN = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
+_VERSION_PATTERN = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)")
+_ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+_ZIP_COMPRESSION_LEVEL = 9
+_ZIP_FILE_MODE = 0o100644
+_ZIP_DIRECTORY_MODE = 0o40755
 _REQUIRED_ROOT_FILES = (
     "manifest.json",
     "requirements.txt",
@@ -181,14 +185,39 @@ def _ignore_release_extras(_directory: str, names: list[str]) -> set[str]:
     }
 
 
+def _normalized_zip_info(name: str, *, is_directory: bool) -> zipfile.ZipInfo:
+    entry = zipfile.ZipInfo(name, date_time=_ZIP_TIMESTAMP)
+    entry.create_system = 3
+    entry.compress_type = zipfile.ZIP_DEFLATED
+    entry._compresslevel = _ZIP_COMPRESSION_LEVEL
+    entry.external_attr = (
+        _ZIP_DIRECTORY_MODE if is_directory else _ZIP_FILE_MODE
+    ) << 16
+    if is_directory:
+        entry.external_attr |= 0x10
+    return entry
+
+
 def _write_archive(stage_root: Path, archive_path: Path) -> None:
     with zipfile.ZipFile(
-        archive_path, "w", compression=zipfile.ZIP_DEFLATED
+        archive_path,
+        "w",
+        compression=zipfile.ZIP_DEFLATED,
+        compresslevel=_ZIP_COMPRESSION_LEVEL,
     ) as archive:
-        archive.writestr(f"{PLUGIN_ID}/", "")
+        archive.writestr(
+            _normalized_zip_info(f"{PLUGIN_ID}/", is_directory=True),
+            b"",
+            compress_type=zipfile.ZIP_DEFLATED,
+            compresslevel=_ZIP_COMPRESSION_LEVEL,
+        )
         for source in sorted(path for path in stage_root.rglob("*") if path.is_file()):
-            archive.write(
-                source, (Path(PLUGIN_ID) / source.relative_to(stage_root)).as_posix()
+            name = (Path(PLUGIN_ID) / source.relative_to(stage_root)).as_posix()
+            archive.writestr(
+                _normalized_zip_info(name, is_directory=False),
+                source.read_bytes(),
+                compress_type=zipfile.ZIP_DEFLATED,
+                compresslevel=_ZIP_COMPRESSION_LEVEL,
             )
 
 
