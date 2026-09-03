@@ -27,11 +27,11 @@ used by the workflows:
 
 ```bash
 uv lock --check
-uv run --only-group ci ruff check .
-uv run --only-group ci ruff format --check .
-uv run --only-group ci pyright
-uv run --only-group ci pytest tests/ -v
-uv run --only-group ci python scripts/build_release.py --version "$release_version" --output-dir "$release_dir"
+uv run --locked --only-group ci ruff check .
+uv run --locked --only-group ci ruff format --check .
+uv run --locked --only-group ci pyright
+uv run --locked --only-group ci pytest tests/ -v
+uv run --locked --only-group ci python scripts/build_release.py --version "$release_version" --output-dir "$release_dir"
 ```
 
 ## Inspect the artifacts
@@ -129,7 +129,10 @@ plugin_id=me_tysmith_LgMonitorControls
 release_dir=dist/release
 archive_name="${plugin_id}-${release_version}.zip"
 checksum_name="${archive_name}.sha256"
-git rev-parse "$release_tag^{}" >/dev/null 2>&1 || git fetch origin "refs/tags/$release_tag"
+if ! git show-ref --verify --quiet "refs/tags/$release_tag"; then
+  git fetch origin "refs/tags/$release_tag:refs/tags/$release_tag"
+fi
+git show-ref --verify --quiet "refs/tags/$release_tag"
 verify_published_release() {
   release_info=$(gh release view "$release_tag" --json isDraft,isPrerelease,assets,url)
   test "$(printf '%s' "$release_info" | jq -r '.isDraft')" = false
