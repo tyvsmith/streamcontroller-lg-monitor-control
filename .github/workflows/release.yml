@@ -6,15 +6,18 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+
+      - name: Check lock file
+        run: uv lock --check
 
       - name: Read tag version
         id: version
@@ -26,30 +29,54 @@ jobs:
             echo "Tag must start with v" >&2
             exit 1
           fi
-          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ! "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo "Tag version must be numeric semver (x.y.z)" >&2
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Lint
-        run: uv run --only-group ci ruff check .
+        run: uv run --locked --only-group ci ruff check .
 
       - name: Format check
-        run: uv run --only-group ci ruff format --check .
+        run: uv run --locked --only-group ci ruff format --check .
 
       - name: Type check
-        run: uv run --only-group ci pyright
+        run: uv run --locked --only-group ci pyright
 
       - name: Test
-        run: uv run --only-group ci pytest tests/ -v
+        run: uv run --locked --only-group ci pytest tests/ -v
 
       - name: Build release artifacts
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
-        run: uv run --only-group ci python scripts/build_release.py --version "$RELEASE_VERSION" --output-dir dist/release
+        run: uv run --locked --only-group ci python scripts/build_release.py --version "$RELEASE_VERSION" --output-dir dist/release
+
+      - name: Upload release files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-files
+          path: |
+            dist/release/*.zip
+            dist/release/*.sha256
+            dist/release/RELEASE_NOTES.md
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download release files
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-files
+          path: dist/release
 
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: gh release create "$GITHUB_REF_NAME" dist/release/*.zip dist/release/*.sha256 --verify-tag --title "LG Monitor Controls $GITHUB_REF_NAME" --notes-file dist/release/RELEASE_NOTES.md
