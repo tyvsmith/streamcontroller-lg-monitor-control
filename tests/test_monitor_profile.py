@@ -31,6 +31,13 @@ class TestLoadToml:
         assert p.has_sharpness is True
         assert p.black_stabilizer.vcp == 0xF9
         assert p.has_black_stabilizer is True
+        assert p.dual_mode.vcp == 0xB1
+        assert p.dual_mode.on == 0x2100
+        assert p.dual_mode.off == 0x2200
+        assert p.dual_mode.i2c_source_addr == ""
+        assert p.dual_mode.on_label == "WFHD 330Hz"
+        assert p.dual_mode.off_label == "5K2K 165Hz"
+        assert p.has_dual_mode is True
 
     def test_load_default_profile(self):
         p = _load_toml(_MONITORS_DIR / "default.toml")
@@ -39,7 +46,32 @@ class TestLoadToml:
         assert p.has_pbp is False
         assert p.has_sharpness is False
         assert p.has_black_stabilizer is False
+        assert p.has_dual_mode is False
         assert p.brightness.vcp == 0x10
+
+    def test_dual_mode_missing_on_is_unsupported(self, tmp_path):
+        path = tmp_path / "missing-on.toml"
+        path.write_text(
+            '[monitor]\nname = "Incomplete"\n\n[dual_mode]\nvcp = 0xB1\noff = 0x2200\n',
+            encoding="utf-8",
+        )
+
+        p = _load_toml(path)
+
+        assert p.dual_mode.on is None
+        assert p.has_dual_mode is False
+
+    def test_dual_mode_missing_off_is_unsupported(self, tmp_path):
+        path = tmp_path / "missing-off.toml"
+        path.write_text(
+            '[monitor]\nname = "Incomplete"\n\n[dual_mode]\nvcp = 0xB1\non = 0x2100\n',
+            encoding="utf-8",
+        )
+
+        p = _load_toml(path)
+
+        assert p.dual_mode.off is None
+        assert p.has_dual_mode is False
 
 
 class TestProfileMatching:
@@ -73,3 +105,4 @@ class TestMonitorProfileDefaults:
         assert p.has_pbp is False
         assert p.has_sharpness is False
         assert p.has_black_stabilizer is False
+        assert p.has_dual_mode is False

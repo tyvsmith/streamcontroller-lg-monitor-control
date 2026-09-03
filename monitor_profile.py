@@ -40,6 +40,16 @@ class MuteConfig:
 
 
 @dataclass
+class DualModeConfig:
+    vcp: int = 0
+    i2c_source_addr: str = ""
+    on: int | None = None
+    off: int | None = None
+    on_label: str = ""
+    off_label: str = ""
+
+
+@dataclass
 class PowerConfig:
     vcp: int = 0xD6
     on: int = 0x01
@@ -62,10 +72,19 @@ class MonitorProfile:
     sharpness: FeatureConfig = field(default_factory=FeatureConfig)
     black_stabilizer: FeatureConfig = field(default_factory=FeatureConfig)
     power: PowerConfig = field(default_factory=PowerConfig)
+    dual_mode: DualModeConfig = field(default_factory=DualModeConfig)
 
     @property
     def has_pbp(self) -> bool:
         return self.pbp.vcp != 0
+
+    @property
+    def has_dual_mode(self) -> bool:
+        return (
+            self.dual_mode.vcp != 0
+            and self.dual_mode.on is not None
+            and self.dual_mode.off is not None
+        )
 
     @property
     def has_sharpness(self) -> bool:
@@ -85,6 +104,7 @@ def _load_toml(path: Path) -> MonitorProfile:
     pbp = data.get("pbp", {})
     mute = data.get("mute", {})
     power = data.get("power", {})
+    dual = data.get("dual_mode", {})
 
     return MonitorProfile(
         name=mon.get("name", "Unknown"),
@@ -118,6 +138,14 @@ def _load_toml(path: Path) -> MonitorProfile:
             on=power.get("on", 0x01),
             standby=power.get("standby", 0x04),
             off=power.get("off", 0x05),
+        ),
+        dual_mode=DualModeConfig(
+            vcp=dual.get("vcp", 0),
+            i2c_source_addr=dual.get("i2c_source_addr", ""),
+            on=dual.get("on"),
+            off=dual.get("off"),
+            on_label=dual.get("on_label", ""),
+            off_label=dual.get("off_label", ""),
         ),
     )
 

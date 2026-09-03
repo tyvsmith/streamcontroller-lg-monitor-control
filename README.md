@@ -10,6 +10,7 @@ A [StreamController](https://github.com/StreamController/StreamController) plugi
 |--------|-----------|------------------------|-----------|
 | **Input Switch** | Switch to configured input | — | — |
 | **PBP Mode** | Toggle PBP 50/50 split | — | — |
+| **Dual Mode** | Toggle Dual Mode (native ↔ high-refresh) | — | — |
 | **Brightness** | Cycle in steps | Set to 100% | Adjust up/down |
 | **Volume** | Cycle in steps | Toggle mute | Adjust up/down |
 | **Contrast** | Cycle in steps | Reset to 70% | Adjust up/down |
@@ -17,7 +18,7 @@ A [StreamController](https://github.com/StreamController/StreamController) plugi
 | **Black Stabilizer** | Cycle in steps | Reset to 50% | Adjust up/down |
 | **Power Mode** | Toggle on/standby | — | — |
 
-- Active input and PBP state shown with green/white icon tinting
+- Active input, PBP, and Dual Mode state shown with green/white icon tinting
 - All ddcutil calls run in background threads — no UI blocking
 - Per-action display number config with plugin-level default
 - Dial support for brightness, volume, contrast, sharpness, and black stabilizer
@@ -25,7 +26,7 @@ A [StreamController](https://github.com/StreamController/StreamController) plugi
 ## Requirements
 
 - [StreamController](https://github.com/StreamController/StreamController) (Flatpak)
-- [ddcutil](https://www.ddcutil.com/) installed on the host system
+- [ddcutil](https://www.ddcutil.com/) 2.1.0 or newer installed on the host system (for `--i2c-source-addr` and `--permit-unknown-feature`)
 - I2C kernel module loaded and permissions configured
 
 ### ddcutil setup
@@ -157,6 +158,13 @@ vcp = 0xD6
 on = 0x01
 standby = 0x04
 off = 0x05
+
+[dual_mode]
+vcp = 0xB1                         # set to 0 if not supported
+on = 0x2100
+off = 0x2200
+on_label = "WFHD 330Hz"            # shown on the key while Dual Mode is on
+off_label = "5K2K 165Hz"           # shown on the key while Dual Mode is off
 ```
 
 ## LG DDC2AB Sidechannel
@@ -168,6 +176,8 @@ LG monitors use a non-standard DDC/CI mechanism called DDC2AB for input switchin
 
 Standard VCP codes (brightness, contrast, volume, etc.) work normally without the sidechannel.
 
+Dual Mode uses VCP 0xB1 on the standard address, but the code is not in ddcutil's feature table so the plugin passes `--permit-unknown-feature`. On the 45GX950A `0x2100` (8448) enters WFHD 330Hz and `0x2200` (8704) returns to 5K2K 165Hz (source: [ColorControl 10.4 release notes](https://github.com/Maassoft/ColorControl/releases/tag/v10.4.0.0)).
+
 See the [ddcutil wiki](https://github.com/rockowitz/ddcutil/wiki/Switching-input-source-on-LG-monitors) for details.
 
 ## Known Limitations
@@ -175,6 +185,7 @@ See the [ddcutil wiki](https://github.com/rockowitz/ddcutil/wiki/Switching-input
 - **Power mode**: Reads correctly but writes are ignored on the 45GX950A (common on gaming monitors/OLEDs)
 - **PiP**: Not controllable via DDC/CI on the 45GX950A — OSD only
 - **Input state read**: The LG sidechannel `getvcp 0xF4` returns unreliable values, so InputSwitch uses fire-and-forget with visual tracking
+- **Dual Mode state read**: `getvcp 0xB1` returns 0 in both modes, so the Dual Mode key tracks the last mode it set. Switching modes with the monitor's hotkey desyncs the key until the next press
 - **Response time**: Returns 0xFF on the 45GX950A — not supported via DDC/CI on OLED panels
 - **Hot-plugging**: Monitor detection is cached at startup — plugging or unplugging a monitor requires restarting StreamController
 - **Polling**: Auto-update is off by default. When enabled per-action, polls at the plugin-wide interval (default 30s). Polling causes I2C bus access which may cause frame drops in games.

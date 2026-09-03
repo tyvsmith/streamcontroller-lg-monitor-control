@@ -39,6 +39,7 @@ VCP_MUTE: int = 0x8D
 VCP_SHARPNESS: int = 0x87
 VCP_BLACK_STABILIZER: int = 0xF9
 VCP_POWER: int = 0xD6
+VCP_LG_DUAL_MODE: int = 0xB1
 
 # --- LG-specific input source codes ---
 
@@ -53,6 +54,9 @@ PBP_LR_50_50: int = 0x05
 POWER_ON: int = 0x01
 POWER_STANDBY: int = 0x04
 POWER_OFF: int = 0x05
+
+DUAL_MODE_ON: int = 0x2100
+DUAL_MODE_OFF: int = 0x2200
 
 INPUT_NAMES: dict[int, str] = {
     LG_INPUT_DP: "DP",
@@ -249,8 +253,13 @@ def setvcp(
     bin_path: str = "",
     src_addr: str = "",
     noverify: bool = True,
+    permit_unknown: bool = False,
 ) -> bool:
-    """Set a VCP feature value. Returns True on success."""
+    """Set a VCP feature value. Returns True on success.
+
+    ``permit_unknown`` adds ``--permit-unknown-feature`` so ddcutil will write
+    codes missing from its feature table (e.g. LG Dual Mode 0xB1).
+    """
     args = [
         _bin(bin_path),
         "-d",
@@ -263,6 +272,8 @@ def setvcp(
         args.append(f"--i2c-source-addr={src_addr}")
     if noverify:
         args.append("--noverify")
+    if permit_unknown:
+        args.append("--permit-unknown-feature")
     try:
         result = _run(args)
         return result.returncode == 0
@@ -321,6 +332,29 @@ def disable_pbp(display: int, bin_path: str = "") -> bool:
         return False
     return setvcp(
         display, p.pbp.vcp, p.pbp.off, bin_path, src_addr=p.pbp.i2c_source_addr
+    )
+
+
+def set_dual_mode(display: int, enabled: bool, bin_path: str = "") -> bool:
+    """Enable or disable Dual Mode (native resolution vs high-refresh mode).
+
+    Fire-and-forget: the monitor does not report Dual Mode state, so callers
+    must track it themselves. The LG code (0xB1) is not in ddcutil's feature
+    table, hence ``permit_unknown``.
+    """
+    p = profile_for(display, bin_path)
+    if not p.has_dual_mode:
+        return False
+    value = p.dual_mode.on if enabled else p.dual_mode.off
+    if value is None:
+        return False
+    return setvcp(
+        display,
+        p.dual_mode.vcp,
+        value,
+        bin_path,
+        src_addr=p.dual_mode.i2c_source_addr,
+        permit_unknown=True,
     )
 
 
